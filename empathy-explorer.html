@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Why Do People Use? — Empathy Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f0f13;
+      --surface:  #18181f;
+      --surface2: #22222c;
+      --border:   #2e2e3a;
+      --text:     #eeeef5;
+      --muted:    #7878a0;
+      --font:     'Inter', 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 1rem 5rem;
+    }
+
+    /* ── Hero ─────────────────────────────────── */
+    .hero {
+      width: 100%;
+      max-width: 860px;
+      text-align: center;
+      padding: 3.5rem 1rem 2rem;
+    }
+
+    .hero-eyebrow {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 0.3rem 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 6vw, 3.8rem);
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      font-size: 1.05rem;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 580px;
+      margin: 0 auto 2rem;
+    }
+
+    /* ── Filter Bar ───────────────────────────── */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-bottom: 2.8rem;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .filter-btn {
+      padding: 0.45rem 1.1rem;
+      border-radius: 50px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.03em;
+    }
+    .filter-btn:hover { border-color: #6060a0; color: var(--text); }
+    .filter-btn.active { background: #2a2a40; border-color: #8080c0; color: #c8c8ff; }
+
+    /* ── Card Grid ────────────────────────────── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.4rem;
+      width: 100%;
+      max-width: 1100px;
+    }
+
+    /* ── Card ─────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    }
+    .card.expanded { border-color: var(--card-accent, #8080c0); }
+
+    .card-top {
+      padding: 1.5rem 1.5rem 1.2rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .card-emoji {
+      font-size: 2.4rem;
+      line-height: 1;
+      flex-shrink: 0;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+    }
+
+    .card-meta { flex: 1; }
+
+    .card-tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 50px;
+      margin-bottom: 0.4rem;
+      background: color-mix(in srgb, var(--card-accent, #8080c0) 18%, transparent);
+      color: var(--card-accent, #a0a0ff);
+      border: 1px solid color-mix(in srgb, var(--card-accent, #8080c0) 35%, transparent);
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      line-height: 1.3;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Voice strip — quote */
+    .voice-strip {
+      margin: 0 1.5rem 1rem;
+      padding: 0.8rem 1rem;
+      background: var(--surface2);
+      border-left: 3px solid var(--card-accent, #8080c0);
+      border-radius: 0 8px 8px 0;
+      font-size: 0.88rem;
+      color: #c0c0d8;
+      font-style: italic;
+      line-height: 1.55;
+    }
+
+    /* Expand / collapse toggle */
+    .card-toggle {
+      padding: 0.7rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--card-accent, #a0a0ff);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-top: 1px solid var(--border);
+      user-select: none;
+    }
+    .card-toggle .arrow {
+      font-size: 1rem;
+      transition: transform 0.3s;
+    }
+    .card.expanded .card-toggle .arrow { transform: rotate(180deg); }
+
+    /* Expandable body */
+    .card-body {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1);
+    }
+    .card.expanded .card-body { max-height: 1200px; }
+
+    .card-body-inner {
+      padding: 1.3rem 1.5rem 1.6rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+
+    /* Section inside body */
+    .body-section h3 {
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.55rem;
+    }
+
+    .body-section p {
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: #c8c8dc;
+    }
+
+    /* Myth vs fact */
+    .myth-fact {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.7rem;
+    }
+    .myth-box, .fact-box {
+      padding: 0.75rem 0.9rem;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .myth-box {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.25);
+      color: #fca5a5;
+    }
+    .fact-box {
+      background: rgba(52,211,153,0.08);
+      border: 1px solid rgba(52,211,153,0.25);
+      color: #6ee7b7;
+    }
+    .myth-box strong, .fact-box strong {
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+      opacity: 0.8;
+    }
+
+    /* What helps list */
+    .helps-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .helps-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: #c0c0dc;
+    }
+    .helps-list li .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--card-accent, #8080c0);
+      flex-shrink: 0;
+      margin-top: 0.45rem;
+    }
+
+    /* Resource chip */
+    .resource-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.85rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .chip:hover { border-color: var(--card-accent, #8080c0); background: var(--surface); }
+
+    /* ── Divider between sections ─────────────── */
+    .divider-label {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 2.5rem 0 1.5rem;
+    }
+    .divider-label span {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .divider-label::before, .divider-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Stigma Buster Banner ─────────────────── */
+    .stigma-banner {
+      width: 100%;
+      max-width: 1100px;
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      border: 1px solid #2a2a4a;
+      border-radius: 18px;
+      padding: 2rem 2.2rem;
+      margin-bottom: 2.5rem;
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+    .stigma-banner .banner-icon { font-size: 2.5rem; flex-shrink: 0; }
+    .stigma-banner h2 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      color: #c8c8ff;
+    }
+    .stigma-banner p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── Footer ──────────────────────────────── */
+    footer {
+      margin-top: 4rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      max-width: 520px;
+      line-height: 1.7;
+    }
+    footer strong { color: #a0a0c0; }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 600px) {
+      .myth-fact { grid-template-columns: 1fr; }
+      .stigma-banner { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-eyebrow">Harm Reduction Education</div>
+  <h1>Why Do <span>People Use?</span></h1>
+  <p>
+    Drug use rarely happens for no reason. Behind every substance is a human story —
+    pain, pressure, curiosity, survival. Understanding the <em>why</em> is the first step
+    toward real empathy and real help.
+  </p>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar" id="filterBar">
+  <button class="filter-btn active" data-filter="all">All Reasons</button>
+  <button class="filter-btn" data-filter="emotional">Emotional Pain</button>
+  <button class="filter-btn" data-filter="social">Social Pressure</button>
+  <button class="filter-btn" data-filter="medical">Medical / Physical</button>
+  <button class="filter-btn" data-filter="mental-health">Mental Health</button>
+  <button class="filter-btn" data-filter="environment">Environment</button>
+</div>
+
+<!-- Stigma Buster -->
+<div class="stigma-banner">
+  <div class="banner-icon">💬</div>
+  <div>
+    <h2>A note before you read</h2>
+    <p>
+      Nothing here is about excusing harm. It's about understanding people.
+      Addiction is recognized by every major medical organization as a health condition —
+      not a moral failure, not a choice, not a character flaw.
+      People who struggle with substances deserve the same compassion as anyone with a chronic illness.
+    </p>
+  </div>
+</div>
+
+<!-- Card Grid -->
+<div class="grid" id="grid"></div>
+
+<footer>
+  ⚠️ This tool is for <strong>education and empathy-building only</strong>. It does not promote drug use.
+  If you or someone you know needs support, call <strong>SAMHSA: 1-800-662-4357</strong> (free, confidential, 24/7)
+  or text <strong>HOME to 741741</strong> (Crisis Text Line).
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════
+   CARD DATA
+═══════════════════════════════════════════ */
+const CARDS = [
+
+  {
+    id: "chronic-pain",
+    emoji: "🩹",
+    tag: "Medical / Physical",
+    category: "medical",
+    accent: "#f97316",
+    title: "To Escape Physical Pain",
+    subtitle: "When your body hurts every single day, relief can feel like survival.",
+    quote: "\"I had a back injury and the pills were the only thing that let me function. By the time the prescription ran out, I couldn't stop.\"",
+    why: "Chronic pain affects millions of people. For some, prescription opioids are legitimately the only treatment that works — until tolerance builds, prescriptions get cut off, and people turn to street drugs just to function. This isn't weakness. It's a medical system failing people in pain.",
+    myth: "\"They just want to get high.\"",
+    fact: "Many people start with legitimate prescriptions from doctors. The line between 'patient' and 'addict' is often drawn by circumstances, not character.",
+    helps: [
+      "Non-opioid pain management (physical therapy, nerve blocks, ketamine clinics)",
+      "Medication-assisted treatment (MAT) like buprenorphine for opioid use disorder",
+      "Pain specialists who understand addiction — they exist and can help",
+      "Patient advocacy if a doctor cuts off pain medication without a plan",
+    ],
+    resources: [
+      { icon: "📞", label: "SAMHSA Helpline", href: "https://www.samhsa.gov/find-help/national-helpline" },
+      { icon: "🔍", label: "Find a MAT Provider", href: "https://findtreatment.gov" },
+    ],
+  },
+
+  {
+    id: "trauma",
+    emoji: "🧠",
+    tag: "Emotional Pain",
+    category: "emotional",
+    accent: "#a78bfa",
+    title: "To Cope With Trauma",
+    subtitle: "When memories hurt, substances can feel like the only off switch.",
+    quote: "\"After what happened to me, I couldn't sleep without drinking. My brain wouldn't stop. Alcohol was the only thing that made it quiet.\"",
+    why: "Trauma — from abuse, violence, loss, war, or childhood neglect — can rewire the brain's stress response. Substances can temporarily quiet the hypervigilance, flashbacks, and emotional pain that trauma causes. For many people, using isn't about getting high — it's about getting through the day. This is called self-medication, and it's extremely common among people who've experienced trauma.",
+    myth: "\"They're using their past as an excuse.\"",
+    fact: "Childhood trauma literally changes brain chemistry. Research shows strong direct links between ACEs (Adverse Childhood Experiences) and substance use later in life. It's biology, not weakness.",
+    helps: [
+      "Trauma-informed therapy (EMDR, CPT) — specifically designed for trauma, not just talk therapy",
+      "Substance use treatment that also addresses trauma (dual diagnosis treatment)",
+      "Safe housing — many people use because their environment is dangerous",
+      "Peer support from others who have lived experience",
+    ],
+    resources: [
+      { icon: "📞", label: "Crisis Text Line", href: "https://www.crisistextline.org" },
+      { icon: "🔍", label: "Trauma Therapist Finder", href: "https://www.psychologytoday.com/us/therapists/trauma-and-ptsd" },
+    ],
+  },
+
+  {
+    id: "anxiety",
+    emoji: "😰",
+    tag: "Mental Health",
+    category: "mental-health",
+    accent: "#60a5fa",
+    title: "To Quiet Anxiety",
+    subtitle: "For some people, social situations feel genuinely terrifying — and substances seem to fix that.",
+    quote: "\"I couldn't talk to anyone at parties without drinking first. It was like my brain finally shut up and I could just be normal.\"",
+    why: "Social anxiety disorder is one of the most common mental health conditions. It's not shyness — it's a real neurological difference that makes social situations feel physically threatening. Alcohol and benzodiazepines both reduce anxiety immediately and powerfully. For someone who has never felt socially comfortable, that relief can feel life-changing — and addictive. Over time, the brain stops producing its own calming signals because it expects the drug to do it.",
+    myth: "\"Just relax and talk to people — it's not that hard.\"",
+    fact: "Social anxiety involves real differences in how the brain processes threat. Telling someone to 'just relax' is like telling someone with broken glasses to 'just see better.' It doesn't work that way.",
+    helps: [
+      "Cognitive Behavioral Therapy (CBT) — the most evidence-based treatment for anxiety",
+      "SSRIs/SNRIs (non-addictive medications) that reduce baseline anxiety over time",
+      "Exposure therapy — gradually building real confidence in social situations",
+      "Support groups where everyone understands the feeling (social anxiety community online)",
+    ],
+    resources: [
+      { icon: "📖", label: "ADAA (Anxiety org)", href: "https://adaa.org/understanding-anxiety/social-anxiety-disorder" },
+      { icon: "📞", label: "NAMI Helpline", href: "https://www.nami.org/help" },
+    ],
+  },
+
+  {
+    id: "adhd",
+    emoji: "⚡",
+    tag: "Mental Health",
+    category: "mental-health",
+    accent: "#facc15",
+    title: "Undiagnosed or Untreated ADHD",
+    subtitle: "When your brain won't focus and no one has ever helped — you find your own solutions.",
+    quote: "\"I didn't know I had ADHD until I was 22. I'd been using cocaine and Adderall off the street since high school just to get through class.\"",
+    why: "ADHD affects how the brain regulates attention, impulse control, and dopamine. Stimulants — including cocaine, meth, and even nicotine — raise dopamine and can make someone with ADHD feel calmer and more focused. Many people self-medicate ADHD for years, especially if they were never diagnosed. Studies show ADHD significantly increases the risk of substance use disorder — not because of bad choices, but because an untreated brain is seeking balance.",
+    myth: "\"They're just lazy and using drugs as an excuse to not do things.\"",
+    fact: "ADHD is a neurodevelopmental disorder with strong genetic components. People with ADHD are often working twice as hard as everyone else and still falling behind. The frustration alone is exhausting.",
+    helps: [
+      "ADHD diagnosis (a psychiatrist or psychologist can evaluate — many adults go undiagnosed for years)",
+      "Stimulant medications (Adderall, Ritalin) prescribed legally are far safer than street drugs",
+      "Non-stimulant options (Strattera, Wellbutrin) for people who can't take stimulants",
+      "ADHD coaching and organizational strategies that don't rely on medication",
+    ],
+    resources: [
+      { icon: "📖", label: "CHADD (ADHD org)", href: "https://chadd.org" },
+      { icon: "🔍", label: "Find an ADHD Specialist", href: "https://www.additudemag.com/find-adhd-specialist" },
+    ],
+  },
+
+  {
+    id: "depression",
+    emoji: "🌑",
+    tag: "Mental Health",
+    category: "mental-health",
+    accent: "#818cf8",
+    title: "To Feel Something — or Nothing",
+    subtitle: "Depression can make life feel completely flat. Substances can briefly bring color back.",
+    quote: "\"When I was depressed, I didn't feel anything. Cocaine made me feel alive for a few hours. I knew it was going to make things worse but I didn't care.\"",
+    why: "Major depression depletes dopamine, serotonin, and motivation. Substances like cocaine, MDMA, and alcohol can artificially restore those feelings — temporarily. The cruel trap is that repeated use depletes the brain's natural ability to feel pleasure on its own (called anhedonia), making depression worse over time and the drugs feel necessary. Many people who use heavily are actually treating depression they've never been diagnosed with.",
+    myth: "\"They should just choose to be happy.\"",
+    fact: "Depression is a medical condition affecting brain chemistry. It's not a choice, a mood, or something you can think your way out of without help. It requires treatment just like diabetes or asthma.",
+    helps: [
+      "Antidepressants — SSRIs and SNRIs work for many people without addiction risk",
+      "Therapy (CBT, DBT) — especially effective combined with medication",
+      "Exercise, sleep, and nutrition — real but underrated factors in depression",
+      "Treating both depression AND substance use at the same time (dual diagnosis care)",
+    ],
+    resources: [
+      { icon: "📞", label: "988 Suicide & Crisis Lifeline", href: "https://988lifeline.org" },
+      { icon: "📖", label: "NIMH Depression Info", href: "https://www.nimh.nih.gov/health/topics/depression" },
+    ],
+  },
+
+  {
+    id: "peer-pressure",
+    emoji: "👥",
+    tag: "Social Pressure",
+    category: "social",
+    accent: "#34d399",
+    title: "Social Pressure & Belonging",
+    subtitle: "The need to fit in is one of the most powerful forces in human psychology — especially as a teen.",
+    quote: "\"All my friends were doing it at every party. I didn't want to be the only one who wasn't. I just wanted to belong to something.\"",
+    why: "The teenage and young adult brain is uniquely wired to value social belonging — more than any other stage of life. The parts of the brain that handle peer rejection and social reward are on overdrive during adolescence. Saying no to substance use in many social settings means risking exclusion, mockery, or invisibility. That's a genuinely hard calculation for a 16-year-old. This isn't weakness — it's brain development doing exactly what it evolved to do.",
+    myth: "\"A strong person would just say no.\"",
+    fact: "Social belonging is a fundamental human need recognized by psychologists. The teenage brain is neurologically more sensitive to peer rejection than any other age group. Asking teens to override that without tools or support is setting them up to fail.",
+    helps: [
+      "Practicing refusal scripts — specific words to say that don't make you the odd one out",
+      "Finding friend groups where substance use isn't the centerpiece of socializing",
+      "Understanding that 'everyone does it' is often a myth — many teens don't",
+      "Activities that build identity and belonging outside of party culture",
+    ],
+    resources: [
+      { icon: "📖", label: "Teen Line (peer support)", href: "https://teenline.org" },
+      { icon: "📞", label: "Crisis Text Line", href: "https://www.crisistextline.org" },
+    ],
+  },
+
+  {
+    id: "boredom",
+    emoji: "🕳️",
+    tag: "Environment",
+    category: "environment",
+    accent: "#94a3b8",
+    title: "Boredom & Lack of Opportunity",
+    subtitle: "When there's nothing to look forward to, drugs fill the void.",
+    quote: "\"There was literally nothing to do in my town. No jobs, nothing open after 9pm. Getting high was just... what you did.\"",
+    why: "Access to recreational activities, meaningful work, education, and social spaces is not equal across communities. In underfunded rural towns, low-income neighborhoods, or areas hit by economic collapse, substance use often rises because people lack alternatives. Boredom isn't laziness — it's often a symptom of a community that has been abandoned by policy and investment. Calling this a 'personal choice' problem ignores the reality of the environment.",
+    myth: "\"They're just wasting their potential.\"",
+    fact: "Studies consistently show that substance use rates are higher in areas with fewer economic opportunities, recreational options, and social support systems. Individual choices happen inside social conditions — and those conditions matter enormously.",
+    helps: [
+      "Youth programs, sports, arts — structured ways to fill time with meaning",
+      "Job training and employment programs — especially for young adults",
+      "Community organizing — working to improve the environment itself",
+      "Online communities and remote opportunities for rural youth",
+    ],
+    resources: [
+      { icon: "📖", label: "AmeriCorps Programs", href: "https://americorps.gov" },
+      { icon: "🔍", label: "Youth.gov Resources", href: "https://youth.gov" },
+    ],
+  },
+
+  {
+    id: "trauma-home",
+    emoji: "🏚️",
+    tag: "Environment",
+    category: "environment",
+    accent: "#fb7185",
+    title: "Unsafe or Chaotic Home Life",
+    subtitle: "When home isn't safe, people find other ways to feel safe.",
+    quote: "\"My dad was an alcoholic. I started drinking at 13 just to feel like I understood him — to have something in common. Later it just became my way of coping with him.\"",
+    why: "Children who grow up in homes with substance use, domestic violence, neglect, or instability are significantly more likely to develop substance use issues themselves. This happens through multiple pathways: genetic vulnerability, trauma, learned behavior, and a lack of other coping skills. A child who watches a parent drink to cope learns that drinking is how adults handle stress — not because they're told to, but because they observe it every single day.",
+    myth: "\"The apple doesn't fall far from the tree — it's inevitable.\"",
+    fact: "Genetics increase vulnerability, not destiny. Many children of addicted parents never develop substance use disorders — especially with access to supportive relationships, mental health care, and stable environments.",
+    helps: [
+      "Alateen and Al-Anon — specifically for people with addicted family members",
+      "School counselors and trusted adults — the most protective factor for at-risk youth is ONE caring adult",
+      "Therapy to understand family patterns without repeating them",
+      "Safe housing programs for young people escaping unsafe homes",
+    ],
+    resources: [
+      { icon: "📖", label: "Alateen (for teens w/ addicted family)", href: "https://al-anon.org/for-members/group-resources/alateen/" },
+      { icon: "🏠", label: "Safe Housing: Crisis Text Line", href: "https://www.crisistextline.org" },
+    ],
+  },
+
+  {
+    id: "curiosity",
+    emoji: "🔭",
+    tag: "Social Pressure",
+    category: "social",
+    accent: "#38bdf8",
+    title: "Curiosity & Experimentation",
+    subtitle: "Wanting to try new experiences is completely human — and doesn't make someone an addict.",
+    quote: "\"I was just curious what all the fuss was about. I tried it once at a festival and nothing bad happened. But I understand now how quickly 'once' can become 'always.'\"",
+    why: "Curiosity is a healthy, normal human trait. The vast majority of people who try substances do not develop addictions. But for some people — particularly those with genetic vulnerability, trauma history, or untreated mental health issues — experimentation can become a starting point for dependence. The danger isn't curiosity itself, it's the gap between 'trying it once' and knowing the real risk factors for who ends up dependent.",
+    myth: "\"If you try it once, you're already on the path to addiction.\"",
+    fact: "Research shows most people who try illicit substances do not develop addiction. The risk is real but not inevitable — and is significantly shaped by genetics, mental health history, age at first use, and environment.",
+    helps: [
+      "Understanding personal risk factors before experimenting (family history matters)",
+      "Harm reduction: if you're going to try something, know what it is first",
+      "Test strips, Narcan, and never using alone — reduce the risk dramatically",
+      "Starting at lower doses and waiting — most overdoses happen from taking too much too fast",
+    ],
+    resources: [
+      { icon: "📖", label: "DanceSafe (harm reduction)", href: "https://dancesafe.org" },
+      { icon: "🔍", label: "Know the risks: NIDA", href: "https://nida.nih.gov/research-topics/teens" },
+    ],
+  },
+
+  {
+    id: "sleep",
+    emoji: "😴",
+    tag: "Medical / Physical",
+    category: "medical",
+    accent: "#67e8f9",
+    title: "Sleep Problems & Exhaustion",
+    subtitle: "When you haven't slept in days, almost anything that promises rest feels worth it.",
+    quote: "\"I was working nights and couldn't sleep during the day. Someone offered me a Xanax and for the first time in months I actually got real sleep. Then I needed two. Then I couldn't sleep without them.\"",
+    why: "Chronic sleep deprivation is a genuine health crisis — it affects cognition, mood, immunity, and mental health. Shift workers, parents of newborns, students, and people with anxiety are particularly vulnerable. Benzodiazepines and alcohol both help people fall asleep (in the short term) and are easy to access. The problem: both destroy sleep quality over time, cause physical dependence, and create a cycle where you need them just to reach a baseline.",
+    myth: "\"They just don't want to wake up early enough.\"",
+    fact: "Chronic insomnia is a recognized medical condition. Sleep deprivation after just a few days causes effects similar to being legally drunk. People desperately seeking sleep relief are doing so for real medical reasons.",
+    helps: [
+      "Cognitive Behavioral Therapy for Insomnia (CBT-I) — the most effective long-term treatment",
+      "Sleep hygiene: consistent schedule, dark/cool room, no screens before bed",
+      "Short-term non-addictive sleep aids (melatonin, certain antihistamines, low-dose trazodone)",
+      "Treating the underlying cause: anxiety, depression, shift work disorder, sleep apnea",
+    ],
+    resources: [
+      { icon: "📖", label: "American Sleep Association", href: "https://www.sleepassociation.org" },
+      { icon: "🔍", label: "Find a Sleep Specialist", href: "https://www.aasm.org/find-a-sleep-center" },
+    ],
+  },
+
+  {
+    id: "grief",
+    emoji: "💔",
+    tag: "Emotional Pain",
+    category: "emotional",
+    accent: "#f472b6",
+    title: "Grief & Loss",
+    subtitle: "Grief can feel unbearable. Substances can feel like the only way to turn down the volume.",
+    quote: "\"After my mom died I drank every single night for a year. Not to have fun — just to not feel it for a few hours. That was the only thing getting me through.\"",
+    why: "Grief is one of the most intense emotional experiences a human can have. The death of a loved one, end of a relationship, loss of a job, or loss of identity (after injury, illness, life change) can create pain that feels physically overwhelming. Alcohol and other depressants numb emotional pain in the same way they numb physical pain — because emotional pain and physical pain use overlapping brain circuits. This is neurologically real, not just 'wallowing in sadness.'",
+    myth: "\"They just haven't moved on / gotten over it.\"",
+    fact: "There is no timeline for grief. Studies show the emotional pain of social rejection and loss activates the same brain regions as physical pain. Grief is a wound, not a weakness.",
+    helps: [
+      "Grief counseling — different from general therapy, specifically addresses loss",
+      "Support groups (in person or online) where others truly understand the loss",
+      "Not trying to 'push through' grief alone — connection is the most healing thing",
+      "Giving yourself permission to feel without using substances to avoid the feeling",
+    ],
+    resources: [
+      { icon: "📖", label: "Grief Share (support groups)", href: "https://www.griefshare.org" },
+      { icon: "📞", label: "Crisis Text Line", href: "https://www.crisistextline.org" },
+    ],
+  },
+
+  {
+    id: "performance",
+    emoji: "🏆",
+    tag: "Social Pressure",
+    category: "social",
+    accent: "#fbbf24",
+    title: "Performance & Achievement Pressure",
+    subtitle: "High-achieving cultures push people to perform beyond what's humanly sustainable — and some find chemical solutions.",
+    quote: "\"I was pre-med, working 30 hours a week, and taking 18 credit hours. I couldn't have gotten through finals without Adderall. Everyone was doing it.\"",
+    why: "Academic pressure, professional expectations, and hustle culture have created environments where sleep deprivation and overwork are worn as badges of honor. Stimulants (Adderall, cocaine, modafinil) provide a shortcut to superhuman productivity — temporarily. This is especially common in competitive colleges, finance, tech, and medicine. The problem isn't laziness or weak willpower; it's a culture that demands more than humans can sustainably give without chemical assistance.",
+    myth: "\"Hard work is enough if you're disciplined.\"",
+    fact: "The human brain has real biological limits. Chronic sleep deprivation and overwork impair cognition regardless of willpower. The solution is structural change, not more stimulants.",
+    helps: [
+      "Recognizing that 'everyone does it' isn't true — and those who do often pay a price later",
+      "Setting realistic academic and professional goals — not every A requires self-destruction",
+      "Talking to a counselor about academic pressure before it leads somewhere worse",
+      "Stimulant use disorder treatment if it's already become a dependency",
+    ],
+    resources: [
+      { icon: "📖", label: "NIDA: Prescription Stimulants", href: "https://nida.nih.gov/research-topics/commonly-used-drugs-charts" },
+      { icon: "🔍", label: "Campus mental health resources", href: "https://jedcampus.org" },
+    ],
+  },
+
+];
+
+/* ═══════════════════════════════════════════
+   RENDER
+═══════════════════════════════════════════ */
+function renderCards(filter) {
+  const grid = document.getElementById("grid");
+  const filtered = filter === "all" ? CARDS : CARDS.filter(c => c.category === filter);
+
+  grid.innerHTML = "";
+
+  filtered.forEach(card => {
+    const el = document.createElement("div");
+    el.className = "card";
+    el.dataset.id = card.id;
+    el.style.setProperty("--card-accent", card.accent);
+
+    const helpsHtml = card.helps
+      ? `<ul class="helps-list">${card.helps.map(h => `<li><span class="dot"></span>${h}</li>`).join("")}</ul>`
+      : "";
+
+    const resourcesHtml = card.resources
+      ? `<div class="resource-chips">${card.resources.map(r =>
+          `<a class="chip" href="${r.href}" target="_blank" rel="noopener">${r.icon} ${r.label}</a>`
+        ).join("")}</div>`
+      : "";
+
+    el.innerHTML = `
+      <div class="card-top">
+        <div class="card-emoji">${card.emoji}</div>
+        <div class="card-meta">
+          <span class="card-tag">${card.tag}</span>
+          <h2>${card.title}</h2>
+          <p class="card-subtitle">${card.subtitle}</p>
+        </div>
+      </div>
+
+      <div class="voice-strip">${card.quote}</div>
+
+      <div class="card-toggle">
+        <span>Learn More</span>
+        <span class="arrow">▾</span>
+      </div>
+
+      <div class="card-body">
+        <div class="card-body-inner">
+
+          <div class="body-section">
+            <h3>The Real Story</h3>
+            <p>${card.why}</p>
+          </div>
+
+          <div class="body-section">
+            <h3>Myth vs. Reality</h3>
+            <div class="myth-fact">
+              <div class="myth-box">
+                <strong>❌ What people say</strong>
+                ${card.myth}
+              </div>
+              <div class="fact-box">
+                <strong>✅ What's actually true</strong>
+                ${card.fact}
+              </div>
+            </div>
+          </div>
+
+          <div class="body-section">
+            <h3>What actually helps</h3>
+            ${helpsHtml}
+          </div>
+
+          ${resourcesHtml ? `<div class="body-section"><h3>Resources</h3>${resourcesHtml}</div>` : ""}
+
+        </div>
+      </div>
+    `;
+
+    // Toggle expand
+    el.querySelector(".card-toggle").addEventListener("click", () => {
+      el.classList.toggle("expanded");
+      el.querySelector(".card-toggle span:first-child").textContent =
+        el.classList.contains("expanded") ? "Show Less" : "Learn More";
+    });
+
+    // Clicking card top also toggles
+    el.querySelector(".card-top").addEventListener("click", () => {
+      el.classList.toggle("expanded");
+      el.querySelector(".card-toggle span:first-child").textContent =
+        el.classList.contains("expanded") ? "Show Less" : "Learn More";
+    });
+
+    grid.appendChild(el);
+  });
+
+  // Stagger entrance animation
+  const cards = grid.querySelectorAll(".card");
+  cards.forEach((c, i) => {
+    c.style.opacity = "0";
+    c.style.transform = "translateY(20px)";
+    c.style.transition = "opacity 0.4s ease, transform 0.4s ease";
+    setTimeout(() => {
+      c.style.opacity = "1";
+      c.style.transform = "translateY(0)";
+    }, i * 60);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   FILTER BUTTONS
+═══════════════════════════════════════════ */
+document.getElementById("filterBar").addEventListener("click", e => {
+  const btn = e.target.closest(".filter-btn");
+  if (!btn) return;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  renderCards(btn.dataset.filter);
+});
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+renderCards("all");
+</script>
+
+</body>
+</html>

@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PreventionEd – Knowledge Game Widget</title>
+  <style>
+    /*
+    ╔══════════════════════════════════════════════════════════╗
+    ║  PREVENTION ED COLOR TOKENS — swap these to match site  ║
+    ╠══════════════════════════════════════════════════════════╣
+    ║  --pe-bg       : main widget background                 ║
+    ║  --pe-surface  : card / panel surface                   ║
+    ║  --pe-primary  : brand primary (buttons, tabs, borders) ║
+    ║  --pe-primary-dark : hover state of primary             ║
+    ║  --pe-text     : main text color                        ║
+    ║  --pe-muted    : secondary / muted text                 ║
+    ║  --pe-success  : correct answer green                   ║
+    ║  --pe-error    : wrong answer red                       ║
+    ║  --pe-border   : card border color                      ║
+    ╚══════════════════════════════════════════════════════════╝
+    */
+    :root {
+      --pe-bg:           #f4f8fc;
+      --pe-surface:      #ffffff;
+      --pe-primary:      #2b6cb0;
+      --pe-primary-dark: #1a4a80;
+      --pe-primary-light:#ebf4ff;
+      --pe-text:         #1a202c;
+      --pe-muted:        #718096;
+      --pe-success:      #276749;
+      --pe-success-bg:   #f0fff4;
+      --pe-success-border:#9ae6b4;
+      --pe-error:        #c53030;
+      --pe-error-bg:     #fff5f5;
+      --pe-error-border: #feb2b2;
+      --pe-border:       #e2e8f0;
+      --pe-radius:       12px;
+      --pe-font:         'Helvetica Neue', Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--pe-font);
+      background: #edf2f7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    /* ── Widget Shell ── */
+    .pe-widget {
+      width: 100%;
+      max-width: 640px;
+      background: var(--pe-bg);
+      border-radius: 18px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06);
+      overflow: hidden;
+      font-family: var(--pe-font);
+    }
+
+    /* ── Header ── */
+    .pe-header {
+      background: var(--pe-primary);
+      padding: 1.5rem 2rem 0;
+    }
+
+    .pe-header-top {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .pe-logo-dot {
+      width: 10px; height: 10px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0.7;
+    }
+
+    .pe-header-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.75);
+    }
+
+    /* ── Tabs ── */
+    .pe-tabs {
+      display: flex;
+      gap: 0;
+    }
+
+    .pe-tab {
+      flex: 1;
+      padding: 0.85rem 1rem;
+      background: transparent;
+      border: none;
+      color: rgba(255,255,255,0.55);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      font-family: var(--pe-font);
+      border-bottom: 3px solid transparent;
+      transition: color 0.2s, border-color 0.2s;
+      position: relative;
+    }
+
+    .pe-tab.active {
+      color: #ffffff;
+      border-bottom-color: #ffffff;
+    }
+
+    .pe-tab:hover:not(.active) {
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* ── Panels ── */
+    .pe-panel { display: none; padding: 2rem; }
+    .pe-panel.active { display: block; }
+
+    /* ════════════════════════════════
+       QUIZ
+    ════════════════════════════════ */
+    .pe-quiz-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .pe-quiz-counter {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--pe-muted);
+    }
+
+    .pe-quiz-score {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: var(--pe-primary);
+    }
+
+    /* Progress bar */
+    .pe-progress {
+      height: 4px;
+      background: var(--pe-border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 1.75rem;
+    }
+
+    .pe-progress-fill {
+      height: 100%;
+      background: var(--pe-primary);
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    /* Question */
+    .pe-question {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--pe-text);
+      line-height: 1.45;
+      margin-bottom: 1.5rem;
+      min-height: 3em;
+    }
+
+    /* Options */
+    .pe-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .pe-option {
+      width: 100%;
+      background: var(--pe-surface);
+      border: 1.5px solid var(--pe-border);
+      color: var(--pe-text);
+      padding: 0.85rem 1.1rem;
+      border-radius: var(--pe-radius);
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      font-family: var(--pe-font);
+      line-height: 1.4;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .pe-option-letter {
+      width: 26px; height: 26px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--pe-primary-light);
+      color: var(--pe-primary);
+      font-size: 0.72rem;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      letter-spacing: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .pe-option:hover:not(:disabled) {
+      border-color: var(--pe-primary);
+      background: var(--pe-primary-light);
+      transform: translateX(3px);
+    }
+
+    .pe-option:hover:not(:disabled) .pe-option-letter {
+      background: var(--pe-primary);
+      color: #fff;
+    }
+
+    .pe-option.correct {
+      border-color: var(--pe-success-border);
+      background: var(--pe-success-bg);
+      color: var(--pe-success);
+      font-weight: 600;
+    }
+
+    .pe-option.correct .pe-option-letter {
+      background: var(--pe-success);
+      color: #fff;
+    }
+
+    .pe-option.wrong {
+      border-color: var(--pe-error-border);
+      background: var(--pe-error-bg);
+      color: var(--pe-error);
+    }
+
+    .pe-option.wrong .pe-option-letter {
+      background: var(--pe-error);
+      color: #fff;
+    }
+
+    /* Feedback */
+    .pe-feedback {
+      background: var(--pe-primary-light);
+      border-left: 3px solid var(--pe-primary);
+      border-radius: 0 8px 8px 0;
+      padding: 0.85rem 1rem;
+      font-size: 0.85rem;
+      color: var(--pe-text);
+      line-height: 1.55;
+      display: none;
+      margin-bottom: 1.25rem;
+    }
+
+    .pe-feedback.visible { display: block; }
+
+    .pe-feedback-label {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--pe-primary);
+      margin-bottom: 0.35rem;
+    }
+
+    /* Next button */
+    .pe-btn {
+      background: var(--pe-primary);
+      color: #fff;
+      border: none;
+      padding: 0.75rem 1.75rem;
+      border-radius: 100px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: var(--pe-font);
+      letter-spacing: 0.02em;
+      transition: background 0.15s, transform 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .pe-btn:hover { background: var(--pe-primary-dark); transform: translateY(-1px); }
+    .pe-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .pe-btn-outline {
+      background: transparent;
+      color: var(--pe-primary);
+      border: 1.5px solid var(--pe-primary);
+    }
+
+    .pe-btn-outline:hover {
+      background: var(--pe-primary-light);
+    }
+
+    .pe-btn-row {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* Result */
+    .pe-result {
+      text-align: center;
+      padding: 1rem 0;
+    }
+
+    .pe-result-ring {
+      width: 110px; height: 110px;
+      border-radius: 50%;
+      background: var(--pe-primary-light);
+      border: 4px solid var(--pe-primary);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+    }
+
+    .pe-result-num {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--pe-primary);
+      line-height: 1;
+    }
+
+    .pe-result-denom {
+      font-size: 0.75rem;
+      color: var(--pe-muted);
+      font-weight: 600;
+    }
+
+    .pe-result-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--pe-text);
+      margin-bottom: 0.5rem;
+    }
+
+    .pe-result-msg {
+      font-size: 0.88rem;
+      color: var(--pe-muted);
+      line-height: 1.6;
+      max-width: 36ch;
+      margin: 0 auto 1.5rem;
+    }
+
+    .pe-result-btns {
+      display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;
+    }
+
+    /* ════════════════════════════════
+       MYTH BUSTERS
+    ════════════════════════════════ */
+    .pe-myth-counter {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--pe-muted);
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    /* Flip card */
+    .pe-flip-wrap {
+      perspective: 900px;
+      margin-bottom: 1.25rem;
+    }
+
+    .pe-flip-card {
+      position: relative;
+      width: 100%;
+      height: 210px;
+      transform-style: preserve-3d;
+      transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+      cursor: pointer;
+    }
+
+    .pe-flip-card.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .pe-flip-front,
+    .pe-flip-back {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--pe-radius);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.75rem;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .pe-flip-front {
+      background: var(--pe-surface);
+      border: 1.5px solid var(--pe-border);
+      text-align: center;
+      gap: 0.6rem;
+    }
+
+    .pe-flip-front-badge {
+      font-size: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--pe-primary);
+      background: var(--pe-primary-light);
+      padding: 0.25rem 0.7rem;
+      border-radius: 100px;
+    }
+
+    .pe-flip-front-text {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--pe-text);
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .pe-flip-front-hint {
+      font-size: 0.7rem;
+      color: var(--pe-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Back - two variants */
+    .pe-flip-back {
+      transform: rotateY(180deg);
+      gap: 0.75rem;
+      text-align: center;
+    }
+
+    .pe-flip-back.is-myth {
+      background: #fff5f5;
+      border: 1.5px solid var(--pe-error-border);
+    }
+
+    .pe-flip-back.is-fact {
+      background: var(--pe-success-bg);
+      border: 1.5px solid var(--pe-success-border);
+    }
+
+    .pe-flip-verdict {
+      font-size: 0.85rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.9rem;
+      border-radius: 100px;
+    }
+
+    .is-myth .pe-flip-verdict {
+      background: var(--pe-error-bg);
+      color: var(--pe-error);
+      border: 1.5px solid var(--pe-error-border);
+    }
+
+    .is-fact .pe-flip-verdict {
+      background: var(--pe-success-bg);
+      color: var(--pe-success);
+      border: 1.5px solid var(--pe-success-border);
+    }
+
+    .pe-flip-explain {
+      font-size: 0.85rem;
+      color: var(--pe-text);
+      line-height: 1.55;
+    }
+
+    /* Myth nav */
+    .pe-myth-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .pe-myth-dots {
+      display: flex; gap: 6px; align-items: center;
+    }
+
+    .pe-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--pe-border);
+      transition: background 0.2s, transform 0.2s;
+    }
+
+    .pe-dot.active {
+      background: var(--pe-primary);
+      transform: scale(1.3);
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .pe-panel { padding: 1.25rem; }
+      .pe-header { padding: 1.25rem 1.25rem 0; }
+      .pe-question { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="pe-widget">
+
+  <!-- Header / Tabs -->
+  <div class="pe-header">
+    <div class="pe-header-top">
+      <div class="pe-logo-dot"></div>
+      <span class="pe-header-label">Prevention Ed · Knowledge Check</span>
+    </div>
+    <div class="pe-tabs">
+      <button class="pe-tab active" onclick="switchTab('quiz')">✦ Fact Quiz</button>
+      <button class="pe-tab" onclick="switchTab('myth')">⟳ Myth Busters</button>
+    </div>
+  </div>
+
+  <!-- ── QUIZ PANEL ── -->
+  <div class="pe-panel active" id="panel-quiz">
+
+    <!-- Quiz playing state -->
+    <div id="quiz-playing">
+      <div class="pe-quiz-meta">
+        <span class="pe-quiz-counter" id="q-counter">Question 1 of 8</span>
+        <span class="pe-quiz-score">Score: <strong id="q-score">0</strong></span>
+      </div>
+      <div class="pe-progress">
+        <div class="pe-progress-fill" id="q-prog" style="width:0%"></div>
+      </div>
+      <div class="pe-question" id="q-text"></div>
+      <div class="pe-options" id="q-opts"></div>
+      <div class="pe-feedback" id="q-feedback">
+        <div class="pe-feedback-label">Did you know?</div>
+        <div id="q-feedback-text"></div>
+      </div>
+      <div class="pe-btn-row">
+        <button class="pe-btn" id="q-next" onclick="nextQ()" style="display:none;">Next →</button>
+      </div>
+    </div>
+
+    <!-- Quiz result state -->
+    <div id="quiz-result" style="display:none;">
+      <div class="pe-result">
+        <div class="pe-result-ring">
+          <div class="pe-result-num" id="r-num">0</div>
+          <div class="pe-result-denom" id="r-denom">out of 8</div>
+        </div>
+        <div class="pe-result-title" id="r-title">Nice work!</div>
+        <div class="pe-result-msg" id="r-msg"></div>
+        <div class="pe-result-btns">
+          <button class="pe-btn pe-btn-outline" onclick="restartQuiz()">Try Again</button>
+          <button class="pe-btn" onclick="switchTab('myth')">Try Myth Busters →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── MYTH PANEL ── -->
+  <div class="pe-panel" id="panel-myth">
+    <div class="pe-myth-counter" id="myth-counter">Card 1 of 6 · Tap to reveal</div>
+    <div class="pe-flip-wrap">
+      <div class="pe-flip-card" id="myth-card" onclick="flipMyth()">
+        <div class="pe-flip-front">
+          <span class="pe-flip-front-badge">Myth or Fact?</span>
+          <div class="pe-flip-front-text" id="myth-front-text"></div>
+          <div class="pe-flip-front-hint">Tap card to reveal answer</div>
+        </div>
+        <div class="pe-flip-back" id="myth-back">
+          <span class="pe-flip-verdict" id="myth-verdict-badge"></span>
+          <div class="pe-flip-explain" id="myth-explain"></div>
+        </div>
+      </div>
+    </div>
+    <div class="pe-myth-nav">
+      <button class="pe-btn pe-btn-outline" onclick="prevMyth()" style="padding:0.6rem 1.2rem; font-size:0.82rem;">← Prev</button>
+      <div class="pe-myth-dots" id="myth-dots"></div>
+      <button class="pe-btn" onclick="nextMyth()" style="padding:0.6rem 1.2rem; font-size:0.82rem;">Next →</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════
+   DATA
+════════════════════════════════════════════ */
+const QUIZ = [
+  {
+    q: "By approximately how much has the THC content in cannabis increased since the 1990s?",
+    opts: ["About 100%","About 300%","About 650%","About 1,000%"],
+    ans: 2,
+    feedback: "THC levels have risen roughly 650% since the 1990s — today's cannabis is dramatically more potent than what previous generations experienced."
+  },
+  {
+    q: "Which best describes fentanyl?",
+    opts: ["A plant-based opioid like heroin","A synthetic opioid up to 100× more potent than morphine","A mild prescription painkiller","A stimulant similar to cocaine"],
+    ans: 1,
+    feedback: "Fentanyl is a synthetic opioid roughly 100× more potent than morphine. It's now found in counterfeit pills, making pill safety education critical for teens."
+  },
+  {
+    q: "What does the acronym SUPP stand for in PreventionEd's research program?",
+    opts: ["Student Understanding of Prevention Programs","Student Substance Use and Peer Perception","Survey on Underage Party Practices","Student Use Prevention Protocol"],
+    ans: 1,
+    feedback: "The SUPP survey helps schools gather real data on student behavior and peer norms — a key foundation for evidence-based prevention planning."
+  },
+  {
+    q: "Why is delaying the age of first substance use so important?",
+    opts: ["Older teens handle substances better","It reduces peer pressure over time","Earlier use significantly raises addiction risk","Substances are less potent later in adolescence"],
+    ans: 2,
+    feedback: "Research consistently shows: the earlier a person begins using substances, the higher their risk of developing a use disorder. Delaying onset is one of the most powerful prevention strategies."
+  },
+  {
+    q: "Which of these is NOT a free resource offered by Prevention Education Solutions?",
+    opts: ["Periodic Table of Vaping","Fentanyl Awareness Guide","Teen Mental Health Assessment","ZYN Nicotine Pouches Infographic"],
+    ans: 2,
+    feedback: "PreventionEd's free resources include the Periodic Table of Vaping, Cannabis Potency Infographic, Fentanyl Awareness Guide, Nicotine Content Guide, and ZYN Infographic."
+  },
+  {
+    q: "What makes PreventionEd's school workshops uniquely effective?",
+    opts: ["They focus only on statistics and data","Staff combine clinical expertise with personal recovery stories","They exclusively target elementary students","They use shock videos and scare tactics"],
+    ans: 1,
+    feedback: "PreventionEd educators bring both clinical training and lived recovery experience — creating authentic connections that traditional programs can't replicate."
+  },
+  {
+    q: "Research shows which factor most reduces substance abuse risk among LGBTQ+ youth?",
+    opts: ["Stricter school discipline","Environments that foster safety and belonging","Reduced access to technology","Earlier substance use education only"],
+    ans: 1,
+    feedback: "LGBTQ+ youth who feel safe and have a genuine sense of belonging at school show significantly reduced rates of substance use and mental health struggles."
+  },
+  {
+    q: "A single high-strength nicotine pouch (like ZYN) can contain nicotine comparable to:",
+    opts: ["Half a cigarette","1–2 cigarettes","Up to a full pack of cigarettes","10 cigarettes"],
+    ans: 2,
+    feedback: "Some high-strength nicotine pouch products contain nicotine levels comparable to a full pack of cigarettes — far more potent than packaging suggests."
+  }
+];
+
+const MYTHS = [
+  {
+    text: "You can't get addicted to marijuana — it's natural.",
+    isMyth: true,
+    explain: "Cannabis use disorder is real, affecting about 9% of people who use it. Today's high-potency THC (up ~650% since the 90s) makes addiction risk significantly higher than older data suggested."
+  },
+  {
+    text: "Vaping is just water vapor — it's basically harmless.",
+    isMyth: true,
+    explain: "Vape aerosol contains dozens of toxic chemicals including heavy metals, formaldehyde, and nicotine. The 'Periodic Table of Vaping' illustrates just how many harmful compounds are in each puff."
+  },
+  {
+    text: "Fentanyl is now routinely found in counterfeit prescription pills.",
+    isMyth: false,
+    explain: "This is a fact. Counterfeit pills made to look like Adderall, Xanax, or oxycodone increasingly contain lethal fentanyl doses. A single pill can be fatal — which is why pill safety education is urgent."
+  },
+  {
+    text: "Teens who drink at home with parents are safer from future alcohol problems.",
+    isMyth: true,
+    explain: "Research does not support 'supervised drinking' as a protective factor. Early alcohol exposure — even at home — is associated with higher rates of alcohol use disorder later in life."
+  },
+  {
+    text: "Nicotine pouches like ZYN are a safe, smoke-free alternative to cigarettes.",
+    isMyth: true,
+    explain: "'Smoke-free' does not mean harm-free. ZYN and similar products deliver high nicotine doses, carry significant addiction risk, and are linked to gum disease and oral health problems."
+  },
+  {
+    text: "Delaying the age of first drug or alcohol use significantly reduces addiction risk.",
+    isMyth: false,
+    explain: "This is a fact — and one of the most important in prevention. Every year of delayed first use reduces addiction risk because the adolescent brain's reward system is particularly vulnerable to substance-related changes."
+  }
+];
+
+/* ════════════════════════════════════════════
+   SHARED
+════════════════════════════════════════════ */
+function switchTab(id) {
+  document.querySelectorAll('.pe-tab').forEach((t,i) => {
+    t.classList.toggle('active', (id==='quiz'&&i===0)||(id==='myth'&&i===1));
+  });
+  document.querySelectorAll('.pe-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+/* ════════════════════════════════════════════
+   QUIZ
+════════════════════════════════════════════ */
+let qIdx = 0, qScore = 0, qAnswered = false;
+
+function renderQ() {
+  const d = QUIZ[qIdx];
+  qAnswered = false;
+
+  document.getElementById('q-counter').textContent = `Question ${qIdx+1} of ${QUIZ.length}`;
+  document.getElementById('q-prog').style.width = `${(qIdx/QUIZ.length)*100}%`;
+  document.getElementById('q-text').textContent = d.q;
+
+  const fb = document.getElementById('q-feedback');
+  fb.classList.remove('visible');
+  document.getElementById('q-next').style.display = 'none';
+
+  const letters = ['A','B','C','D'];
+  const opts = document.getElementById('q-opts');
+  opts.innerHTML = '';
+  d.opts.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'pe-option';
+    btn.innerHTML = `<span class="pe-option-letter">${letters[i]}</span>${opt}`;
+    btn.onclick = () => selectQ(i);
+    opts.appendChild(btn);
+  });
+}
+
+function selectQ(idx) {
+  if (qAnswered) return;
+  qAnswered = true;
+  const d = QUIZ[qIdx];
+  const btns = document.querySelectorAll('.pe-option');
+  btns.forEach(b => b.disabled = true);
+  btns[d.ans].classList.add('correct');
+  if (idx !== d.ans) btns[idx].classList.add('wrong');
+  else {
+    qScore++;
+    document.getElementById('q-score').textContent = qScore;
+  }
+  document.getElementById('q-feedback-text').textContent = d.feedback;
+  document.getElementById('q-feedback').classList.add('visible');
+  document.getElementById('q-next').style.display = 'inline-flex';
+}
+
+function nextQ() {
+  qIdx++;
+  if (qIdx >= QUIZ.length) showResult();
+  else renderQ();
+}
+
+function showResult() {
+  document.getElementById('quiz-playing').style.display = 'none';
+  document.getElementById('quiz-result').style.display = 'block';
+  document.getElementById('r-num').textContent = qScore;
+  document.getElementById('r-denom').textContent = `out of ${QUIZ.length}`;
+  const pct = qScore / QUIZ.length;
+  const msgs = [
+    ["Keep exploring!", "Prevention starts with curiosity. Check out our resources and blog to learn more."],
+    ["Good effort!", "You're building solid knowledge. Explore our blog to fill in the gaps."],
+    ["Well done!", "Strong foundation! You understand the key issues facing today's youth."],
+    ["Prevention Expert!", "Outstanding! Share what you know — informed adults are the best prevention tool."]
+  ];
+  const m = pct < 0.4 ? msgs[0] : pct < 0.65 ? msgs[1] : pct < 0.9 ? msgs[2] : msgs[3];
+  document.getElementById('r-title').textContent = m[0];
+  document.getElementById('r-msg').textContent = m[1];
+}
+
+function restartQuiz() {
+  qIdx = 0; qScore = 0;
+  document.getElementById('q-score').textContent = '0';
+  document.getElementById('quiz-playing').style.display = 'block';
+  document.getElementById('quiz-result').style.display = 'none';
+  renderQ();
+}
+
+renderQ();
+
+/* ════════════════════════════════════════════
+   MYTHS
+════════════════════════════════════════════ */
+let mIdx = 0;
+
+function buildDots() {
+  const wrap = document.getElementById('myth-dots');
+  wrap.innerHTML = '';
+  MYTHS.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'pe-dot' + (i===mIdx?' active':'');
+    wrap.appendChild(d);
+  });
+}
+
+function renderMyth() {
+  const m = MYTHS[mIdx];
+  const card = document.getElementById('myth-card');
+  card.classList.remove('flipped');
+
+  setTimeout(() => {
+    document.getElementById('myth-front-text').textContent = m.text;
+    document.getElementById('myth-counter').textContent =
+      `Card ${mIdx+1} of ${MYTHS.length} · Tap to reveal`;
+
+    const back = document.getElementById('myth-back');
+    back.className = 'pe-flip-back ' + (m.isMyth ? 'is-myth' : 'is-fact');
+
+    const badge = document.getElementById('myth-verdict-badge');
+    badge.textContent = m.isMyth ? '✗ MYTH' : '✓ FACT';
+
+    document.getElementById('myth-explain').textContent = m.explain;
+    buildDots();
+  }, card.classList.contains('flipped') ? 260 : 0);
+}
+
+function flipMyth() {
+  document.getElementById('myth-card').classList.toggle('flipped');
+  const c = document.getElementById('myth-counter');
+  c.textContent = `Card ${mIdx+1} of ${MYTHS.length} · ` +
+    (document.getElementById('myth-card').classList.contains('flipped') ? 'Tap to flip back' : 'Tap to reveal');
+}
+
+function nextMyth() {
+  mIdx = (mIdx+1) % MYTHS.length;
+  renderMyth();
+}
+
+function prevMyth() {
+  mIdx = (mIdx-1+MYTHS.length) % MYTHS.length;
+  renderMyth();
+}
+
+renderMyth();
+</script>
+</body>
+</html>

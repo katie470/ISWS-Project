@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASH Smartphone Survey — Parent Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --blue: #3D5A80;
+            --blue-dark: #2C4460;
+            --blue-light: #4A6FA5;
+            --red: #C9363F;
+            --red-dark: #A52D34;
+            --red-light: #E05A62;
+            --gold: #E2B84A;
+            --gold-dark: #C9A23E;
+            --gold-light: #F0CC6B;
+            --ink: #1A1A2E;
+            --text: #2D2D3F;
+            --text-secondary: #5A5A72;
+            --bg: #F7F7FB;
+            --white: #FFFFFF;
+            --border: #E2E2EE;
+            --card-shadow: 0 2px 16px rgba(61,90,128,0.08);
+            --card-hover: 0 8px 32px rgba(61,90,128,0.14);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Navigation ── */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--blue-dark);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 0 2rem;
+        }
+        .navbar-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .nav-logo {
+            width: 36px;
+            height: 36px;
+            background: var(--gold);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--blue-dark);
+        }
+        .nav-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--white);
+            letter-spacing: -0.01em;
+        }
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+        .nav-links a {
+            color: rgba(255,255,255,0.75);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: color 0.2s;
+            letter-spacing: 0.01em;
+        }
+        .nav-links a:hover { color: var(--gold); }
+
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .hamburger span {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: var(--white);
+            margin: 5px 0;
+            transition: 0.3s;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            background: linear-gradient(135deg, var(--blue-dark) 0%, var(--blue) 60%, var(--blue-light) 100%);
+            padding: 5rem 2rem 4rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(226,184,74,0.12) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -10%;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(201,54,63,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-text h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: var(--white);
+            line-height: 1.15;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
+        }
+        .hero-text h1 span {
+            color: var(--gold);
+        }
+        .hero-text p {
+            color: rgba(255,255,255,0.78);
+            font-size: 1.05rem;
+            margin-bottom: 2rem;
+            max-width: 500px;
+        }
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        .hero-stat {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(8px);
+            transition: transform 0.3s, background 0.3s;
+        }
+        .hero-stat:hover {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.12);
+        }
+        .hero-stat-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--gold);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        .hero-stat-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        /* ── Sections ── */
+        .section {
+            padding: 5rem 2rem;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .section-dark {
+            background: var(--ink);
+            max-width: 100%;
+            padding: 5rem 2rem;
+        }
+        .section-dark .section-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .section-red {
+            background: linear-gradient(135deg, var(--red-dark) 0%, var(--red) 100%);
+            max-width: 100%;
+            padding: 5rem 2rem;
+        }
+        .section-red .section-inner {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .section-badge {
+            display: inline-block;
+            padding: 0.35rem 1rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 1rem;
+        }
+        .badge-blue { background: rgba(61,90,128,0.1); color: var(--blue); }
+        .badge-red { background: rgba(201,54,63,0.1); color: var(--red); }
+        .badge-gold { background: rgba(226,184,74,0.15); color: var(--gold-dark); }
+        .badge-white { background: rgba(255,255,255,0.15); color: var(--white); }
+        .section-header h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(1.75rem, 3vw, 2.25rem);
+            color: var(--ink);
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+        .section-dark .section-header h2,
+        .section-red .section-header h2 { color: var(--white); }
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .section-dark .section-header p { color: rgba(255,255,255,0.65); }
+        .section-red .section-header p { color: rgba(255,255,255,0.8); }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            transition: box-shadow 0.3s, border-color 0.3s, transform 0.3s;
+        }
+        .card:hover {
+            box-shadow: var(--card-hover);
+            border-color: var(--blue-light);
+            transform: translateY(-2px);
+        }
+        .card-dark {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .card-dark:hover {
+            background: rgba(255,255,255,0.07);
+            border-color: var(--gold);
+        }
+
+        /* ── Grade Level Filter Tabs ── */
+        .filter-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+        .filter-tab {
+            padding: 0.6rem 1.5rem;
+            border: 2px solid var(--border);
+            border-radius: 100px;
+            background: var(--white);
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: 'Inter', sans-serif;
+        }
+        .filter-tab:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+        .filter-tab.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: var(--white);
+        }
+        .filter-tab.active-red {
+            background: var(--red);
+            border-color: var(--red);
+            color: var(--white);
+        }
+        .filter-tab.active-gold {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: var(--ink);
+        }
+
+        /* ── Chart Grid ── */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+        .chart-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: var(--card-shadow);
+            transition: box-shadow 0.3s, transform 0.3s;
+        }
+        .chart-card:hover {
+            box-shadow: var(--card-hover);
+            transform: translateY(-2px);
+        }
+        .chart-card h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.35rem;
+            line-height: 1.4;
+        }
+        .chart-card .chart-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+        }
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        /* ── Comparison Bars ── */
+        .comparison-section {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 2rem;
+            align-items: center;
+        }
+        .comparison-label h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--white);
+            margin-bottom: 0.25rem;
+        }
+        .comparison-label p {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.5);
+        }
+        .comparison-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .bar-group-label {
+            width: 120px;
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.7);
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .bar-track {
+            flex: 1;
+            height: 28px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+        }
+        .bar-fill-blue { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+        .bar-fill-red { background: linear-gradient(90deg, var(--red), var(--red-light)); }
+        .bar-fill-gold { background: linear-gradient(90deg, var(--gold-dark), var(--gold)); }
+        .bar-pct {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--white);
+            white-space: nowrap;
+        }
+
+        /* ── Key Takeaways ── */
+        .takeaway-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        .takeaway-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: transform 0.3s, background 0.3s;
+        }
+        .takeaway-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.1);
+        }
+        .takeaway-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin: 0 auto 1rem;
+        }
+        .icon-blue { background: rgba(61,90,128,0.2); }
+        .icon-red { background: rgba(201,54,63,0.2); }
+        .icon-gold { background: rgba(226,184,74,0.2); }
+        .takeaway-card h3 {
+            font-family: 'Playfair Display', serif;
+            color: var(--white);
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        .takeaway-card p {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        /* ── Comments Section ── */
+        .comments-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .comment-display {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: var(--card-shadow);
+            position: relative;
+        }
+        .comment-quote {
+            font-size: 3rem;
+            color: var(--gold);
+            font-family: 'Playfair Display', serif;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+        .comment-text {
+            font-size: 1.05rem;
+            color: var(--text);
+            line-height: 1.7;
+            max-width: 600px;
+            margin-bottom: 1.25rem;
+            font-style: italic;
+        }
+        .comment-source {
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .source-elementary { background: rgba(61,90,128,0.1); color: var(--blue); }
+        .source-middle { background: rgba(201,54,63,0.1); color: var(--red); }
+        .source-both { background: rgba(226,184,74,0.15); color: var(--gold-dark); }
+
+        .comment-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .comment-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--white);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            transition: all 0.25s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .comment-btn:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+            background: rgba(61,90,128,0.04);
+        }
+        .comment-counter {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            min-width: 60px;
+            text-align: center;
+        }
+        .comment-dots {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .comment-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .comment-dot.active { background: var(--blue); transform: scale(1.3); }
+
+        .comment-filter-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .comment-filter-tab {
+            padding: 0.5rem 1.2rem;
+            border: 2px solid var(--border);
+            border-radius: 100px;
+            background: var(--white);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.25s;
+            font-family: 'Inter', sans-serif;
+        }
+        .comment-filter-tab:hover {
+            border-color: var(--blue);
+            color: var(--blue);
+        }
+        .comment-filter-tab.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: var(--white);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            background: var(--blue-dark);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        .footer p {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.85rem;
+        }
+        .footer a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 900px) {
+            .hero-inner { grid-template-columns: 1fr; gap: 2rem; }
+            .hero-stats { grid-template-columns: repeat(3, 1fr); }
+            .chart-grid { grid-template-columns: 1fr; }
+            .takeaway-grid { grid-template-columns: 1fr; }
+            .comparison-row { grid-template-columns: 1fr; gap: 0.75rem; }
+            .comparison-label { text-align: center; }
+            .bar-group-label { width: 90px; font-size: 0.72rem; }
+            .nav-links { display: none; }
+            .hamburger { display: block; }
+            .nav-links.open {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 64px;
+                left: 0;
+                right: 0;
+                background: var(--blue-dark);
+                padding: 1rem 2rem;
+                gap: 1rem;
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+            }
+        }
+        @media (max-width: 500px) {
+            .hero-stats { grid-template-columns: 1fr; }
+            .hero { padding: 3rem 1.25rem 2.5rem; }
+            .section { padding: 3rem 1.25rem; }
+            .section-dark, .section-red { padding: 3rem 1.25rem; }
+            .filter-tabs { gap: 0.35rem; }
+            .filter-tab { padding: 0.5rem 1rem; font-size: 0.78rem; }
+        }
+
+        /* ── Perspectives Section ── */
+        .perspective-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .perspective-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: var(--card-shadow);
+            transition: box-shadow 0.3s, transform 0.3s;
+        }
+        .perspective-card:hover {
+            box-shadow: var(--card-hover);
+            transform: translateY(-2px);
+        }
+        .perspective-card h4 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        .perspective-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        .persp-stat {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .persp-stat-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .persp-stat-label {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+        .persp-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            border-top: 1px solid var(--border);
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+        .persp-detail:first-of-type { margin-top: 0.75rem; }
+        .persp-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .persp-dot-blue { background: var(--blue); }
+        .persp-dot-red { background: var(--red); }
+        .persp-dot-gold { background: var(--gold); }
+        .persp-note {
+            background: rgba(61,90,128,0.04);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* ── Community Norms Section ── */
+        .norms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .norm-card {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: transform 0.3s, background 0.3s;
+        }
+        .norm-card:hover {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.1);
+        }
+        .norm-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--gold);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+        .norm-of {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.45);
+            margin-bottom: 0.75rem;
+        }
+        .norm-desc {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.85);
+            font-weight: 500;
+            line-height: 1.45;
+        }
+        .norm-subtext {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.45);
+            margin-top: 0.5rem;
+        }
+        .norms-context {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.03);
+        }
+        .norms-context p {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.88rem;
+            line-height: 1.65;
+        }
+
+        /* ── Animations ── */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Stat bars for overview ── */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .overview-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: var(--card-shadow);
+            border-top: 4px solid var(--blue);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .overview-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--card-hover);
+        }
+        .overview-card:nth-child(2) { border-top-color: var(--red); }
+        .overview-card:nth-child(3) { border-top-color: var(--gold); }
+        .overview-card .ov-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        .overview-card .ov-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 0.25rem;
+        }
+        .overview-card .ov-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 700px) {
+            .overview-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════ NAVBAR ═══════════════════ -->
+<nav class="navbar">
+    <div class="navbar-inner">
+        <div class="nav-brand">
+            <div class="nav-logo">A</div>
+            <span class="nav-title">ASH Parent Survey</span>
+        </div>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#concerns">Concerns</a></li>
+            <li><a href="#comparison">Comparison</a></li>
+            <li><a href="#engagement">Engagement</a></li>
+            <li><a href="#perspectives">Perspectives</a></li>
+            <li><a href="#community">Community</a></li>
+            <li><a href="#comments">Comments</a></li>
+        </ul>
+        <button class="hamburger" onclick="document.getElementById('navLinks').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</nav>
+
+<!-- ═══════════════════ HERO ═══════════════════ -->
+<section class="hero" id="overview">
+    <div class="hero-inner">
+        <div class="hero-text">
+            <h1>ASH Smartphone Survey<br><span>Results Dashboard</span></h1>
+            <p>Insights from 85 parent responses across elementary and middle school families at the American School of The Hague.</p>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-number">85</div>
+                <div class="hero-stat-label">Total Responses</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-number">86%</div>
+                <div class="hero-stat-label">Concerned About<br>Smartphones</div>
+            </div>
+            <div class="hero-stat">
+                <div class="hero-stat-number">74%</div>
+                <div class="hero-stat-label">Want to Be<br>Involved</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ RESPONDENT OVERVIEW ═══════════════════ -->
+<section class="section" id="respondents">
+    <div class="section-header fade-in">
+        <span class="section-badge badge-blue">Respondents</span>
+        <h2>Who Responded</h2>
+        <p>A breakdown of the 85 parents who participated, by school level</p>
+    </div>
+    <div class="overview-grid fade-in">
+        <div class="overview-card">
+            <div class="ov-label">Elementary School</div>
+            <div class="ov-value">16</div>
+            <div class="ov-desc">18.8% of respondents</div>
+        </div>
+        <div class="overview-card">
+            <div class="ov-label">Middle School</div>
+            <div class="ov-value">46</div>
+            <div class="ov-desc">54.1% of respondents</div>
+        </div>
+        <div class="overview-card">
+            <div class="ov-label">Both Levels</div>
+            <div class="ov-value">23</div>
+            <div class="ov-desc">27.1% of respondents</div>
+        </div>
+    </div>
+    <div class="chart-grid fade-in" style="margin-top:1.5rem;">
+        <div class="chart-card">
+            <h3>Respondent Distribution</h3>
+            <div class="chart-subtitle">By grade level grouping</div>
+            <div class="chart-wrapper" style="max-width:320px;margin:0 auto;">
+                <canvas id="respondentPie"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Smartphone Ownership by Group</h3>
+            <div class="chart-subtitle">Does child already have a smartphone?</div>
+            <div class="chart-wrapper">
+                <canvas id="ownershipChart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ CONCERNS ═══════════════════ -->
+<section class="section" id="concerns">
+    <div class="section-header fade-in">
+        <span class="section-badge badge-red">Key Findings</span>
+        <h2>Parent Concerns</h2>
+        <p>How parents across grade levels feel about smartphone use</p>
+    </div>
+
+    <div class="filter-tabs fade-in" id="concernTabs">
+        <button class="filter-tab active" onclick="setConcernView('all')">All Groups</button>
+        <button class="filter-tab" onclick="setConcernView('elementary')">Elementary</button>
+        <button class="filter-tab" onclick="setConcernView('middle')">Middle School</button>
+        <button class="filter-tab" onclick="setConcernView('both')">Both Levels</button>
+    </div>
+
+    <div class="chart-grid fade-in">
+        <div class="chart-card">
+            <h3>Concerns About Own Child Having a Smartphone</h3>
+            <div class="chart-subtitle" id="concernOwnSubtitle">Across all respondent groups</div>
+            <div class="chart-wrapper">
+                <canvas id="concernOwnChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Concerns About Peers Having Smartphones</h3>
+            <div class="chart-subtitle" id="concernPeerSubtitle">Across all respondent groups</div>
+            <div class="chart-wrapper">
+                <canvas id="concernPeerChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Interest in Waiting to Get a Smartphone</h3>
+            <div class="chart-subtitle" id="waitSubtitle">Across all respondent groups</div>
+            <div class="chart-wrapper">
+                <canvas id="waitChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Interest in "Wait Until 8th" Pledge</h3>
+            <div class="chart-subtitle" id="pledgeSubtitle">Across all respondent groups</div>
+            <div class="chart-wrapper">
+                <canvas id="pledgeChart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ COMPARISON ═══════════════════ -->
+<section class="section-dark" id="comparison">
+    <div class="section-inner">
+        <div class="section-header fade-in">
+            <span class="section-badge badge-white">Side-by-Side</span>
+            <h2>Grade Level Comparison</h2>
+            <p>How responses differ between elementary and middle school families</p>
+        </div>
+
+        <div class="comparison-section fade-in">
+            <!-- Row 1 -->
+            <div class="comparison-row">
+                <div class="comparison-label">
+                    <h4>Concerned About Own Child</h4>
+                    <p>% answering "Yes"</p>
+                </div>
+                <div class="comparison-bars">
+                    <div class="bar-row">
+                        <span class="bar-group-label">Elementary</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-blue" style="width:0%" data-target="93.8"><span class="bar-pct">93.8%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Middle School</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-red" style="width:0%" data-target="82.6"><span class="bar-pct">82.6%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Both Levels</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width:0%" data-target="87.0"><span class="bar-pct">87.0%</span></div></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Row 2 -->
+            <div class="comparison-row">
+                <div class="comparison-label">
+                    <h4>Concerned About Peers</h4>
+                    <p>% answering "Yes"</p>
+                </div>
+                <div class="comparison-bars">
+                    <div class="bar-row">
+                        <span class="bar-group-label">Elementary</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-blue" style="width:0%" data-target="93.8"><span class="bar-pct">93.8%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Middle School</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-red" style="width:0%" data-target="80.4"><span class="bar-pct">80.4%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Both Levels</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width:0%" data-target="87.0"><span class="bar-pct">87.0%</span></div></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Row 3 -->
+            <div class="comparison-row">
+                <div class="comparison-label">
+                    <h4>Interested in Waiting</h4>
+                    <p>% answering "Yes"</p>
+                </div>
+                <div class="comparison-bars">
+                    <div class="bar-row">
+                        <span class="bar-group-label">Elementary</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-blue" style="width:0%" data-target="75.0"><span class="bar-pct">75.0%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Middle School</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-red" style="width:0%" data-target="67.4"><span class="bar-pct">67.4%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Both Levels</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width:0%" data-target="82.6"><span class="bar-pct">82.6%</span></div></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Row 4 -->
+            <div class="comparison-row">
+                <div class="comparison-label">
+                    <h4>Interest in Pledge</h4>
+                    <p>% answering "Yes"</p>
+                </div>
+                <div class="comparison-bars">
+                    <div class="bar-row">
+                        <span class="bar-group-label">Elementary</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-blue" style="width:0%" data-target="68.8"><span class="bar-pct">68.8%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Middle School</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-red" style="width:0%" data-target="65.2"><span class="bar-pct">65.2%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Both Levels</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width:0%" data-target="60.9"><span class="bar-pct">60.9%</span></div></div>
+                    </div>
+                </div>
+            </div>
+            <!-- Row 5 -->
+            <div class="comparison-row">
+                <div class="comparison-label">
+                    <h4>Want to Be Involved</h4>
+                    <p>% answering "Yes"</p>
+                </div>
+                <div class="comparison-bars">
+                    <div class="bar-row">
+                        <span class="bar-group-label">Elementary</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-blue" style="width:0%" data-target="93.8"><span class="bar-pct">93.8%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Middle School</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-red" style="width:0%" data-target="69.6"><span class="bar-pct">69.6%</span></div></div>
+                    </div>
+                    <div class="bar-row">
+                        <span class="bar-group-label">Both Levels</span>
+                        <div class="bar-track"><div class="bar-fill bar-fill-gold" style="width:0%" data-target="69.6"><span class="bar-pct">69.6%</span></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ ENGAGEMENT ═══════════════════ -->
+<section class="section" id="engagement">
+    <div class="section-header fade-in">
+        <span class="section-badge badge-gold">Community</span>
+        <h2>Engagement &amp; Action</h2>
+        <p>Parent interest in involvement and establishing smartphone limitations</p>
+    </div>
+    <div class="chart-grid fade-in">
+        <div class="chart-card">
+            <h3>Interest in Parent Conversations</h3>
+            <div class="chart-subtitle">Would you like to be involved in conversations with other ASH parents?</div>
+            <div class="chart-wrapper">
+                <canvas id="involvedChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Interest in Establishing More Limitations</h3>
+            <div class="chart-subtitle">For parents whose children already have smartphones</div>
+            <div class="chart-wrapper">
+                <canvas id="limitationsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ KEY TAKEAWAYS ═══════════════════ -->
+<section class="section-red">
+    <div class="section-inner">
+        <div class="section-header fade-in">
+            <span class="section-badge badge-white">Insights</span>
+            <h2>Key Takeaways</h2>
+            <p>The most important themes from parent responses</p>
+        </div>
+        <div class="takeaway-grid fade-in">
+            <div class="takeaway-card">
+                <div class="takeaway-icon icon-blue">
+                    <svg width="28" height="28" fill="none" stroke="#7BAFD4" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+                </div>
+                <h3>Near-Universal Concern</h3>
+                <p>86% of all parents expressed concern about their child having a smartphone, with elementary parents at 94%.</p>
+            </div>
+            <div class="takeaway-card">
+                <div class="takeaway-icon icon-red">
+                    <svg width="28" height="28" fill="none" stroke="#E88A90" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+                </div>
+                <h3>Peer Pressure Is Real</h3>
+                <p>85% are also concerned about peers having smartphones, highlighting social pressure as a major driver for early adoption.</p>
+            </div>
+            <div class="takeaway-card">
+                <div class="takeaway-icon icon-gold">
+                    <svg width="28" height="28" fill="none" stroke="#E8C86B" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87m-4-12a4 4 0 0 1 0 7.75"/></svg>
+                </div>
+                <h3>Strong Community Interest</h3>
+                <p>74% of parents want to be involved in conversations with other families about smartphone policies.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ DIFFERENT PERSPECTIVES ═══════════════════ -->
+<section class="section" id="perspectives">
+    <div class="section-header fade-in">
+        <span class="section-badge badge-blue">All Viewpoints</span>
+        <h2>Different Perspectives</h2>
+        <p>Not all parents share the same view — here's what the data shows across the full range of responses</p>
+    </div>
+
+    <div class="perspective-grid fade-in">
+        <div class="perspective-card">
+            <h4>Parents Not Interested in Delaying Smartphone Use</h4>
+            <div class="persp-stat">
+                <span class="persp-stat-num" style="color:var(--text);">14</span>
+                <span class="persp-stat-label">of 85 parents (16.5%) said "No" to exploring ways to wait</span>
+            </div>
+            <p>These parents may already manage smartphone use in ways they feel work for their family, or may see other approaches as more practical.</p>
+            <div class="persp-detail"><span class="persp-dot persp-dot-blue"></span> Elementary: 1 of 16 (6.3%)</div>
+            <div class="persp-detail"><span class="persp-dot persp-dot-red"></span> Middle School: 10 of 46 (21.7%)</div>
+            <div class="persp-detail"><span class="persp-dot persp-dot-gold"></span> Both Levels: 3 of 23 (13.0%)</div>
+        </div>
+        <div class="perspective-card">
+            <h4>Parents Not Interested in a Pledge Program</h4>
+            <div class="persp-stat">
+                <span class="persp-stat-num" style="color:var(--text);">11</span>
+                <span class="persp-stat-label">of 85 parents (12.9%) said "No" to a pledge like "Wait Until 8th"</span>
+            </div>
+            <p>Some families prefer to make individual decisions rather than participate in group commitments, or their child may already have a phone.</p>
+            <div class="persp-detail"><span class="persp-dot persp-dot-blue"></span> Elementary: 1 of 16 (6.3%)</div>
+            <div class="persp-detail"><span class="persp-dot persp-dot-red"></span> Middle School: 5 of 46 (10.9%)</div>
+            <div class="persp-detail"><span class="persp-dot persp-dot-gold"></span> Both Levels: 5 of 23 (21.7%)</div>
+        </div>
+        <div class="perspective-card">
+            <h4>Parents Without Smartphone Concerns</h4>
+            <div class="persp-stat">
+                <span class="persp-stat-num" style="color:var(--text);">9</span>
+                <span class="persp-stat-label">of 85 parents (10.6%) are not concerned about their child's smartphone</span>
+            </div>
+            <p>These parents may have established boundaries they're satisfied with, or their child's usage patterns may not be a source of worry.</p>
+            <div class="persp-detail"><span class="persp-dot persp-dot-blue"></span> Elementary: 1 of 16 (6.3%)</div>
+            <div class="persp-detail"><span class="persp-dot persp-dot-red"></span> Middle School: 5 of 46 (10.9%)</div>
+            <div class="persp-detail"><span class="persp-dot persp-dot-gold"></span> Both Levels: 3 of 23 (13.0%)</div>
+        </div>
+        <div class="perspective-card">
+            <h4>Undecided Parents</h4>
+            <div class="persp-stat">
+                <span class="persp-stat-num" style="color:var(--text);">7&ndash;16</span>
+                <span class="persp-stat-label">parents were "Undecided" across various questions</span>
+            </div>
+            <p>A notable group of parents are still weighing their options. This is particularly common on the pledge question (16 undecided) and community involvement (14 undecided).</p>
+            <div class="persp-detail"><span class="persp-dot persp-dot-red"></span> Middle school parents make up the largest undecided group</div>
+            <div class="persp-detail"><span class="persp-dot persp-dot-gold"></span> Pledge &amp; involvement see the most indecision</div>
+        </div>
+    </div>
+
+    <div class="persp-note fade-in">
+        These figures represent the full spectrum of parent views at ASH. Every family navigates smartphone decisions differently based on their child's age, maturity, and circumstances.
+    </div>
+</section>
+
+<!-- ═══════════════════ COMMUNITY NORMS ═══════════════════ -->
+<section class="section-dark" id="community">
+    <div class="section-inner">
+        <div class="section-header fade-in">
+            <span class="section-badge badge-white">The Data</span>
+            <h2>Where ASH Parents Stand</h2>
+            <p>A summary of how the majority of surveyed parents responded</p>
+        </div>
+
+        <div class="norms-grid fade-in">
+            <div class="norm-card">
+                <div class="norm-number">86%</div>
+                <div class="norm-of">of parents surveyed</div>
+                <div class="norm-desc">are concerned about their child having a smartphone</div>
+                <div class="norm-subtext">73 of 85 respondents</div>
+            </div>
+            <div class="norm-card">
+                <div class="norm-number">85%</div>
+                <div class="norm-of">of parents surveyed</div>
+                <div class="norm-desc">are also concerned about their child's peers having smartphones</div>
+                <div class="norm-subtext">72 of 85 respondents</div>
+            </div>
+            <div class="norm-card">
+                <div class="norm-number">73%</div>
+                <div class="norm-of">of parents surveyed</div>
+                <div class="norm-desc">are interested in exploring ways to wait longer</div>
+                <div class="norm-subtext">62 of 85 respondents</div>
+            </div>
+            <div class="norm-card">
+                <div class="norm-number">65%</div>
+                <div class="norm-of">of parents surveyed</div>
+                <div class="norm-desc">are interested in a pledge like "Wait Until 8th"</div>
+                <div class="norm-subtext">55 of 85 respondents</div>
+            </div>
+            <div class="norm-card">
+                <div class="norm-number">74%</div>
+                <div class="norm-of">of parents surveyed</div>
+                <div class="norm-desc">want to be involved in conversations with other ASH families</div>
+                <div class="norm-subtext">63 of 85 respondents</div>
+            </div>
+            <div class="norm-card">
+                <div class="norm-number">55%</div>
+                <div class="norm-of">of families surveyed</div>
+                <div class="norm-desc">report their child does not yet have a smartphone</div>
+                <div class="norm-subtext">47 of 85 respondents</div>
+            </div>
+        </div>
+
+        <div class="norms-context fade-in">
+            <p>These numbers reflect responses from 85 ASH parents surveyed. Every family's situation is unique, and this data is shared to help parents understand where the broader community stands as they make their own decisions.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════ COMMENTS ═══════════════════ -->
+<section class="section" id="comments">
+    <div class="section-header fade-in">
+        <span class="section-badge badge-blue">Voices</span>
+        <h2>What Parents Are Saying</h2>
+        <p>Click through to read comments from survey respondents</p>
+    </div>
+
+    <div class="comment-filter-tabs fade-in">
+        <button class="comment-filter-tab active" onclick="filterComments('all')">All Comments</button>
+        <button class="comment-filter-tab" onclick="filterComments('middle')">Middle School</button>
+        <button class="comment-filter-tab" onclick="filterComments('both')">Both Levels</button>
+    </div>
+
+    <div class="comments-container fade-in">
+        <div class="comment-display" id="commentDisplay">
+            <div class="comment-quote">&ldquo;</div>
+            <div class="comment-text" id="commentText">Loading...</div>
+            <div class="comment-source" id="commentSource">Parent</div>
+        </div>
+        <div class="comment-nav">
+            <button class="comment-btn" onclick="prevComment()" aria-label="Previous comment">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <span class="comment-counter" id="commentCounter">1 / 24</span>
+            <button class="comment-btn" onclick="nextComment()" aria-label="Next comment">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+        <div class="comment-dots" id="commentDots"></div>
+    </div>
+</section>
+
+<!-- ═══════════════════ FOOTER ═══════════════════ -->
+<footer class="footer">
+    <p>ASH Smartphone Survey Dashboard &mdash; Data from 85 parent responses<br>
+    <a href="https://docs.google.com/forms/d/1J1g4y535VEmrC5uBY7-VUvMSspwjSu_SLyhS-3WQDwg/viewanalytics" target="_blank">View Original Survey Analytics</a></p>
+</footer>
+
+<script>
+// ─── Color Constants ───
+const BLUE = '#3D5A80';
+const BLUE_LIGHT = '#4A6FA5';
+const RED = '#C9363F';
+const RED_LIGHT = '#E05A62';
+const GOLD = '#E2B84A';
+const GOLD_LIGHT = '#F0CC6B';
+const BLUE_BG = 'rgba(61,90,128,0.15)';
+const RED_BG = 'rgba(201,54,63,0.15)';
+const GOLD_BG = 'rgba(226,184,74,0.2)';
+
+// ─── Survey Data ───
+const DATA = {
+    elementary: {
+        label: 'Elementary',
+        n: 16,
+        concernOwn:  { yes: 15, no: 1, undecided: 0 },
+        concernPeer: { yes: 15, no: 1, undecided: 0 },
+        wait:        { yes: 12, no: 1, undecided: 3 },
+        pledge:      { yes: 11, no: 1, undecided: 4 },
+        involved:    { yes: 15, no: 0, undecided: 1 },
+        ownership:   { noPhone: 11, yesLimit: 1, no: 2, undecided: 1 }
+    },
+    middle: {
+        label: 'Middle School',
+        n: 46,
+        concernOwn:  { yes: 38, no: 5, undecided: 2 },
+        concernPeer: { yes: 37, no: 5, undecided: 4 },
+        wait:        { yes: 31, no: 10, undecided: 3 },
+        pledge:      { yes: 30, no: 5, undecided: 9 },
+        involved:    { yes: 32, no: 5, undecided: 9 },
+        ownership:   { noPhone: 23, yesLimit: 18, no: 3, undecided: 1 }
+    },
+    both: {
+        label: 'Both Levels',
+        n: 23,
+        concernOwn:  { yes: 20, no: 3, undecided: 0 },
+        concernPeer: { yes: 20, no: 3, undecided: 0 },
+        wait:        { yes: 19, no: 3, undecided: 1 },
+        pledge:      { yes: 14, no: 5, undecided: 3 },
+        involved:    { yes: 16, no: 3, undecided: 4 },
+        ownership:   { noPhone: 13, yesLimit: 8, no: 2, undecided: 0 }
+    }
+};
+
+// ─── Chart defaults ───
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#5A5A72';
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.padding = 16;
+
+// ─── Respondent Pie Chart ───
+new Chart(document.getElementById('respondentPie'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Elementary (16)', 'Middle School (46)', 'Both Levels (23)'],
+        datasets: [{
+            data: [16, 46, 23],
+            backgroundColor: [BLUE, RED, GOLD],
+            borderWidth: 3,
+            borderColor: '#fff',
+            hoverOffset: 8
+        }]
+    },
+    options: {
+        cutout: '60%',
+        plugins: {
+            legend: { position: 'bottom', labels: { padding: 20 } }
+        }
+    }
+});
+
+// ─── Ownership Stacked Bar ───
+new Chart(document.getElementById('ownershipChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Elementary', 'Middle School', 'Both Levels'],
+        datasets: [
+            { label: 'No Smartphone', data: [11, 23, 13], backgroundColor: BLUE, borderRadius: 4 },
+            { label: 'Has Phone + Wants Limits', data: [1, 18, 8], backgroundColor: RED, borderRadius: 4 },
+            { label: 'Has Phone, No Limits Needed', data: [2, 3, 2], backgroundColor: GOLD, borderRadius: 4 },
+            { label: 'Undecided', data: [1, 1, 0], backgroundColor: '#C4C4D4', borderRadius: 4 }
+        ]
+    },
+    options: {
+        indexAxis: 'y',
+        scales: {
+            x: { stacked: true, grid: { display: false }, ticks: { display: false } },
+            y: { stacked: true, grid: { display: false } }
+        },
+        plugins: {
+            legend: { position: 'bottom', labels: { padding: 14, font: { size: 11 } } },
+            tooltip: {
+                callbacks: {
+                    label: ctx => {
+                        const total = [16, 46, 23][ctx.dataIndex];
+                        const pct = ((ctx.raw / total) * 100).toFixed(1);
+                        return `${ctx.dataset.label}: ${ctx.raw} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// ─── Concern Charts (switchable) ───
+let concernView = 'all';
+let concernCharts = {};
+
+function getChartData(field, view) {
+    if (view === 'all') {
+        return {
+            labels: ['Elementary', 'Middle School', 'Both Levels'],
+            datasets: [
+                { label: 'Yes', data: [DATA.elementary[field].yes, DATA.middle[field].yes, DATA.both[field].yes], backgroundColor: [BLUE, RED, GOLD], borderRadius: 6 },
+            ]
+        };
+    }
+    const d = DATA[view][field];
+    const labels = ['Yes'];
+    const data = [d.yes];
+    const colors = [view === 'elementary' ? BLUE : view === 'middle' ? RED : GOLD];
+    if (d.no > 0) { labels.push('No'); data.push(d.no); colors.push('#C4C4D4'); }
+    if (d.undecided > 0) { labels.push('Undecided'); data.push(d.undecided); colors.push('#E8E8F0'); }
+    return {
+        labels,
+        datasets: [{ data, backgroundColor: colors, borderRadius: 6 }]
+    };
+}
+
+function buildConcernChart(canvasId, field) {
+    const ctx = document.getElementById(canvasId);
+    return new Chart(ctx, {
+        type: concernView === 'all' ? 'bar' : 'doughnut',
+        data: getChartData(field, concernView),
+        options: concernView === 'all' ? {
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } },
+                x: { grid: { display: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const totals = [16, 46, 23];
+                            const pct = ((ctx.raw / totals[ctx.dataIndex]) * 100).toFixed(1);
+                            return `${ctx.raw} responses (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        } : {
+            cutout: '55%',
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            const total = DATA[concernView].n;
+                            const pct = ((ctx.raw / total) * 100).toFixed(1);
+                            return `${ctx.label}: ${ctx.raw} (${pct}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+const chartFields = [
+    ['concernOwnChart', 'concernOwn', 'concernOwnSubtitle'],
+    ['concernPeerChart', 'concernPeer', 'concernPeerSubtitle'],
+    ['waitChart', 'wait', 'waitSubtitle'],
+    ['pledgeChart', 'pledge', 'pledgeSubtitle']
+];
+
+function initConcernCharts() {
+    chartFields.forEach(([id, field]) => {
+        concernCharts[id] = buildConcernChart(id, field);
+    });
+}
+
+function setConcernView(view) {
+    concernView = view;
+    // Update tabs
+    document.querySelectorAll('#concernTabs .filter-tab').forEach(t => t.classList.remove('active','active-red','active-gold'));
+    const tabs = document.querySelectorAll('#concernTabs .filter-tab');
+    const idx = ['all','elementary','middle','both'].indexOf(view);
+    const cls = idx === 2 ? 'active-red' : idx === 3 ? 'active-gold' : 'active';
+    tabs[idx].classList.add(cls);
+
+    // Subtitle
+    const subtitles = { all: 'Across all respondent groups', elementary: 'Elementary school parents (n=16)', middle: 'Middle school parents (n=46)', both: 'Parents with children at both levels (n=23)' };
+    chartFields.forEach(([id, , subId]) => {
+        document.getElementById(subId).textContent = subtitles[view];
+    });
+
+    // Rebuild charts
+    chartFields.forEach(([id, field]) => {
+        concernCharts[id].destroy();
+        concernCharts[id] = buildConcernChart(id, field);
+    });
+}
+
+initConcernCharts();
+
+// ─── Engagement Charts ───
+new Chart(document.getElementById('involvedChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Elementary', 'Middle School', 'Both Levels'],
+        datasets: [
+            { label: 'Yes', data: [15, 32, 16], backgroundColor: BLUE, borderRadius: 6 },
+            { label: 'Undecided', data: [1, 9, 4], backgroundColor: GOLD, borderRadius: 6 },
+            { label: 'No', data: [0, 5, 3], backgroundColor: RED, borderRadius: 6 }
+        ]
+    },
+    options: {
+        scales: {
+            y: { beginAtZero: true, stacked: true, grid: { color: 'rgba(0,0,0,0.04)' } },
+            x: { stacked: true, grid: { display: false } }
+        },
+        plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+                callbacks: {
+                    label: ctx => {
+                        const totals = [16, 46, 23];
+                        const pct = ((ctx.raw / totals[ctx.dataIndex]) * 100).toFixed(1);
+                        return `${ctx.dataset.label}: ${ctx.raw} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+new Chart(document.getElementById('limitationsChart'), {
+    type: 'bar',
+    data: {
+        labels: ['Elementary', 'Middle School', 'Both Levels'],
+        datasets: [
+            { label: 'No Smartphone Yet', data: [11, 23, 13], backgroundColor: BLUE, borderRadius: 6 },
+            { label: 'Yes, Want Limits', data: [1, 18, 8], backgroundColor: RED, borderRadius: 6 },
+            { label: 'No Interest', data: [2, 3, 2], backgroundColor: '#C4C4D4', borderRadius: 6 },
+            { label: 'Undecided', data: [1, 1, 0], backgroundColor: GOLD, borderRadius: 6 }
+        ]
+    },
+    options: {
+        scales: {
+            y: { beginAtZero: true, stacked: true, grid: { color: 'rgba(0,0,0,0.04)' } },
+            x: { stacked: true, grid: { display: false } }
+        },
+        plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 } } },
+            tooltip: {
+                callbacks: {
+                    label: ctx => {
+                        const totals = [16, 46, 23];
+                        const pct = ((ctx.raw / totals[ctx.dataIndex]) * 100).toFixed(1);
+                        return `${ctx.dataset.label}: ${ctx.raw} (${pct}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// ─── Animated Comparison Bars ───
+function animateBars() {
+    document.querySelectorAll('.bar-fill').forEach(bar => {
+        const target = bar.getAttribute('data-target');
+        if (target) bar.style.width = target + '%';
+    });
+}
+
+// ─── Comments Carousel ───
+const COMMENTS = [
+    { text: "It was easier to wait with my older two but I'm struggling to rein in my 7th grader's usage. He's on it a lot.", group: 'middle' },
+    { text: "I was thinking of launching an initiative like this! Please count me in.", group: 'middle' },
+    { text: "I also have concerns about what kids can access from the school laptop browsers.", group: 'middle' },
+    { text: "I never heard of the Parent Pact or Wait until 8th, but I am all for waiting for smartphones.", group: 'middle' },
+    { text: "I would like to know if the school can block the use of games on the school laptops.", group: 'middle' },
+    { text: "I also believe that the distribution of laptops to children, with the ability to play games like Roblox, is problematic.", group: 'middle' },
+    { text: "Please share the survey results. I think it would also be helpful to find out what level of knowledge parents have.", group: 'middle' },
+    { text: "Love that you are starting this initiative!", group: 'middle' },
+    { text: "I think it's joint parent support that's needed. If most middle school kids don't have a smartphone then it is accepted not to have one.", group: 'middle' },
+    { text: "I do not see a problem in my child using a smartphone. Just like everything else it requires attention and limitations.", group: 'middle' },
+    { text: "I fully support all efforts to limit both smartphone AND laptop use at school.", group: 'middle' },
+    { text: "My child does not use any social media, so having a smartphone is not an issue for her.", group: 'middle' },
+    { text: "My children do not get a smartphone until grade 7 \u2014 it is a compromise mainly because of everybody else getting it early.", group: 'middle' },
+    { text: "The book by Jonathan Haidt, 'The Anxious Generation' has been an eye-opener and a panic button for me.", group: 'middle' },
+    { text: "We, as parents, would love to have other kids' access to smartphones limited as well.", group: 'middle' },
+    { text: "I think the longer we can wait to give them phones the better.", group: 'both' },
+    { text: "My middle schooler has one but it's so we can track him since he's off on his own a lot.", group: 'both' },
+    { text: "This is a wonderful start to helping children stay kids for as long as possible.", group: 'both' },
+    { text: "My child did not have a phone until we arrived in NL in middle school, but has strict limitations.", group: 'both' },
+    { text: "Let's read 'Anxious Generation' together and talk about it as parents!", group: 'both' },
+    { text: "I recommend waiting until age 16 for a smartphone or similar device.", group: 'both' },
+    { text: "I think this is the biggest health and development issue facing our children right now.", group: 'both' },
+    { text: "I'm a parent of three children at ASH, and also a software engineer currently researching this topic.", group: 'both' },
+    { text: "I believe children should not have mobile phones \u2014 later is better. At a young age, they are still developing.", group: 'both' }
+];
+
+let filteredComments = [...COMMENTS];
+let commentIndex = 0;
+
+function renderComment() {
+    const c = filteredComments[commentIndex];
+    document.getElementById('commentText').textContent = c.text;
+    const src = document.getElementById('commentSource');
+    src.textContent = c.group === 'middle' ? 'Middle School Parent' : c.group === 'both' ? 'Parent \u2014 Both Levels' : 'Elementary Parent';
+    src.className = 'comment-source ' + (c.group === 'middle' ? 'source-middle' : c.group === 'both' ? 'source-both' : 'source-elementary');
+    document.getElementById('commentCounter').textContent = `${commentIndex + 1} / ${filteredComments.length}`;
+
+    // Dots
+    const dotsEl = document.getElementById('commentDots');
+    if (filteredComments.length <= 20) {
+        dotsEl.innerHTML = filteredComments.map((_, i) =>
+            `<span class="comment-dot ${i === commentIndex ? 'active' : ''}" onclick="goToComment(${i})"></span>`
+        ).join('');
+    } else {
+        dotsEl.innerHTML = '';
+    }
+}
+
+function nextComment() {
+    commentIndex = (commentIndex + 1) % filteredComments.length;
+    renderComment();
+}
+function prevComment() {
+    commentIndex = (commentIndex - 1 + filteredComments.length) % filteredComments.length;
+    renderComment();
+}
+function goToComment(i) {
+    commentIndex = i;
+    renderComment();
+}
+
+function filterComments(group) {
+    document.querySelectorAll('.comment-filter-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    filteredComments = group === 'all' ? [...COMMENTS] : COMMENTS.filter(c => c.group === group);
+    commentIndex = 0;
+    renderComment();
+}
+
+renderComment();
+
+// ─── Intersection Observer for Animations ───
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            // Trigger bar animations when comparison section is visible
+            if (entry.target.closest('#comparison')) {
+                animateBars();
+            }
+        }
+    });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Keyboard nav for comments
+document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight') nextComment();
+    if (e.key === 'ArrowLeft') prevComment();
+});
+</script>
+</body>
+</html>

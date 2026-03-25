@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PREVENTION Ed's Periodic Table of Vaping</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1b6e;
+    --cell: 58px;
+    --gap: 3px;
+    --radius: 4px;
+    --cell-sm: 46px; /* lanthanide/actinide rows */
+
+    /* Category colors matching the PDF */
+    --c-reactive:    #e8540a;
+    --c-alkali:      #4caf50;
+    --c-alkaline:    #9c27b0;
+    --c-transition:  #e53935;
+    --c-metalloid:   #2e7d32;
+    --c-post:        #00897b;
+    --c-noble:       #7b1fa2;
+    --c-lanthanide:  #1565c0;
+    --c-actinide:    #1565c0;
+    --c-unknown:     #455a64;
+
+    /* Vape highlight */
+    --vape-glow: #ffe500;
+  }
+
+  body {
+    background: var(--bg);
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    min-height: 100vh;
+    padding: 0.5rem 0.5rem 1rem;
+    color: #fff;
+  }
+
+  /* ── Header ── */
+  .pt-header {
+    text-align: center;
+    margin-bottom: 0.3rem;
+  }
+
+  /* Logo space — visible, reserved above the title */
+  .pt-logo-placeholder {
+    display: block;
+    height: 56px;           /* swap for your logo's height */
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.25;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #fff;
+    border: 1px dashed rgba(255,255,255,0.2);
+    border-radius: 6px;
+    max-width: 220px;
+    margin: 0 auto 0.5rem;
+  }
+
+  .pt-header h1 {
+    font-size: clamp(1.1rem, 2.2vw, 1.55rem);
+    font-weight: 900;
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+    text-transform: uppercase;
+    color: #ffffff;
+  }
+
+  .pt-header h1 em {
+    font-style: italic;
+    font-weight: 900;
+    color: var(--vape-glow);
+  }
+
+  /* ── Grid wrapper ── */
+  .pt-scroll {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .pt-grid {
+    display: grid;
+    grid-template-columns: repeat(18, var(--cell));
+    grid-template-rows: repeat(8, var(--cell)) 6px var(--cell-sm) var(--cell-sm);
+    gap: var(--gap);
+    width: max-content;
+    margin: 0 auto;
+  }
+
+  /* ── Individual cell ── */
+  .el {
+    width: var(--cell);
+    height: var(--cell);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: default;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+    padding: 2px;
+    border: 2px solid transparent;
+    user-select: none;
+  }
+
+  .el .el-num {
+    font-size: 0.44rem;
+    opacity: 0.75;
+    line-height: 1;
+    align-self: flex-start;
+    padding-left: 3px;
+    padding-top: 2px;
+  }
+
+  .el .el-sym {
+    font-size: 1.15rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .el .el-name {
+    font-size: 0.36rem;
+    opacity: 0.8;
+    text-align: center;
+    line-height: 1.1;
+    padding: 1px 2px 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Category colors */
+  .cat-reactive   { background: var(--c-reactive); }
+  .cat-alkali     { background: var(--c-alkali); }
+  .cat-alkaline   { background: var(--c-alkaline); }
+  .cat-transition { background: var(--c-transition); }
+  .cat-metalloid  { background: var(--c-metalloid); }
+  .cat-post       { background: var(--c-post); }
+  .cat-noble      { background: var(--c-noble); }
+  .cat-lanthanide { background: var(--c-lanthanide); }
+  .cat-actinide   { background: var(--c-actinide); }
+  .cat-unknown    { background: var(--c-unknown); }
+
+  /* Dim non-vape elements */
+  .el:not(.vape) { opacity: 0.4; }
+
+  /* Vape elements — yellow outline + glow */
+  .el.vape {
+    opacity: 1;
+    border: 2px solid var(--vape-glow);
+    box-shadow: 0 0 7px 1px rgba(255,229,0,0.4);
+    cursor: pointer;
+  }
+
+  .el.vape:hover {
+    transform: scale(1.18);
+    box-shadow: 0 0 14px 4px rgba(255,229,0,0.7);
+    z-index: 10;
+    filter: brightness(1.15);
+  }
+
+  .el.vape:active { transform: scale(1.05); }
+
+  /* Empty spacer cell */
+  .el-empty { background: transparent; border: none; pointer-events: none; }
+
+  /* Lanthanide / actinide rows — slightly smaller cells, pulled up */
+  .el-sm {
+    width: var(--cell-sm);
+    height: var(--cell-sm);
+  }
+  .el-sm .el-sym { font-size: 0.95rem; }
+  .el-sm .el-num { font-size: 0.38rem; }
+  .el-sm .el-name { font-size: 0.3rem; }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 1rem;
+    justify-content: center;
+    margin: 0.4rem auto 0;
+    max-width: 960px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.62rem;
+    opacity: 0.72;
+    letter-spacing: 0.02em;
+  }
+
+  .legend-swatch {
+    width: 11px; height: 11px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .legend-vape {
+    width: 11px; height: 11px;
+    border-radius: 2px;
+    border: 1.5px solid var(--vape-glow);
+    box-shadow: 0 0 5px rgba(255,229,0,0.55);
+    flex-shrink: 0;
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 10, 50, 0.88);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: #12206e;
+    border: 2px solid var(--vape-glow);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 520px;
+    box-shadow: 0 0 40px rgba(255,229,0,0.3), 0 20px 60px rgba(0,0,0,0.5);
+    overflow: hidden;
+    transform: translateY(12px) scale(0.97);
+    transition: transform 0.25s;
+  }
+
+  .modal-overlay.open .modal {
+    transform: translateY(0) scale(1);
+  }
+
+  .modal-top {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.75rem 2rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    position: relative;
+  }
+
+  .modal-el-box {
+    width: 80px; height: 80px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2.5px solid var(--vape-glow);
+    box-shadow: 0 0 16px rgba(255,229,0,0.4);
+    flex-shrink: 0;
+  }
+
+  .modal-el-num {
+    font-size: 0.6rem;
+    opacity: 0.7;
+    align-self: flex-start;
+    padding-left: 5px;
+    padding-top: 3px;
+    line-height: 1;
+  }
+
+  .modal-el-sym {
+    font-size: 2.4rem;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .modal-el-name {
+    font-size: 0.55rem;
+    opacity: 0.8;
+    text-align: center;
+  }
+
+  .modal-title-block { flex: 1; }
+
+  .modal-name {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+  }
+
+  .modal-category {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.65rem;
+    border-radius: 100px;
+    background: rgba(255,255,255,0.12);
+    margin-bottom: 0.5rem;
+  }
+
+  .modal-carcinogen {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.75rem;
+    border-radius: 100px;
+    margin-left: 0.5rem;
+  }
+
+  .modal-carcinogen.yes {
+    background: rgba(220,38,38,0.2);
+    border: 1.5px solid rgba(220,38,38,0.5);
+    color: #fc8181;
+  }
+
+  .modal-carcinogen.possible {
+    background: rgba(245,158,11,0.15);
+    border: 1.5px solid rgba(245,158,11,0.4);
+    color: #fbbf24;
+  }
+
+  .modal-carcinogen.no {
+    background: rgba(34,197,94,0.12);
+    border: 1.5px solid rgba(34,197,94,0.3);
+    color: #86efac;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 1rem; right: 1.25rem;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: rgba(255,255,255,0.5);
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+  }
+
+  .modal-close:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+  .modal-body { padding: 1.5rem 2rem 1.75rem; display: flex; flex-direction: column; gap: 1rem; }
+
+  .modal-section-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--vape-glow);
+    margin-bottom: 0.3rem;
+  }
+
+  .modal-section-text {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.82);
+  }
+
+  .modal-section { }
+
+  .modal-found-tags {
+    display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem;
+  }
+
+  .found-tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.25rem 0.7rem;
+    border-radius: 100px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.8);
+  }
+
+  .modal-warning {
+    background: rgba(220,38,38,0.1);
+    border: 1px solid rgba(220,38,38,0.25);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.82rem;
+    color: #fca5a5;
+    line-height: 1.5;
+  }
+
+  .modal-warning strong { color: #fc8181; }
+
+  /* ── Footer attribution ── */
+  .pt-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.4rem;
+    padding: 0 0.5rem;
+    opacity: 0.4;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    max-width: calc(18 * (var(--cell) + var(--gap)));
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="pt-header">
+  <!-- ↓ Replace this div with <img src="your-logo.png" height="48"> when ready -->
+  <div class="pt-logo-placeholder">Logo</div>
+  <h1>Periodic Table of <em>Vaping</em></h1>
+</div>
+
+<!-- Scrollable grid -->
+<div class="pt-scroll">
+  <div class="pt-grid" id="pt-grid"></div>
+</div>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-vape"></div> Found in vape aerosol (click to learn more)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--c-reactive)"></div> Reactive Nonmetals</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--c-alkali)"></div> Alkali Metals</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--c-alkaline)"></div> Alkaline Earth</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--c-transition)"></div> Transition Metals</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--c-metalloid)"></div> Metalloids</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--c-post)"></div> Post-Transition Metals</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--c-noble)"></div> Noble Gases</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:var(--c-lanthanide)"></div> Lanthanides / Actinides</div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+  <div class="modal" id="modal">
+    <div class="modal-top">
+      <div class="modal-el-box" id="m-box">
+        <div class="modal-el-num" id="m-num"></div>
+        <div class="modal-el-sym" id="m-sym"></div>
+        <div class="modal-el-name" id="m-ename"></div>
+      </div>
+      <div class="modal-title-block">
+        <div class="modal-name" id="m-name"></div>
+        <span class="modal-category" id="m-cat"></span>
+        <span class="modal-carcinogen" id="m-carc"></span>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-section-label">About This Element</div>
+        <div class="modal-section-text" id="m-about"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-label">Found In (outside vapes)</div>
+        <div class="modal-found-tags" id="m-found"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-label">Why It's in Vape Aerosol</div>
+        <div class="modal-section-text" id="m-vape"></div>
+      </div>
+      <div class="modal-warning" id="m-warn" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pt-footer">
+  <span>PREVENTION<span style="color:#1a9bdc;margin-left:0.15em;">Ed</span></span>
+  <span>preventioned.org</span>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════
+   ELEMENT DATA
+   vape: true = found in vape aerosol (yellow outline)
+   carc: "yes" | "possible" | "no"
+══════════════════════════════════════════════════ */
+const ELEMENTS = {
+  1:  { sym:"H",  name:"Hydrogen",      cat:"reactive",   vape:false },
+  2:  { sym:"He", name:"Helium",        cat:"noble",      vape:false },
+  3:  { sym:"Li", name:"Lithium",       cat:"alkali",     vape:true,
+        carc:"no",
+        about:"Lithium is a soft, silvery-white alkali metal — the lightest metal on the periodic table. It's highly reactive and must be stored in oil to prevent it from reacting with air or water.",
+        found:["Lithium-ion batteries","Psychiatric medications","Ceramics & glass","Lubricating greases","Fireworks (red color)"],
+        vapeReason:"Lithium leaches from the lithium-ion batteries that power vaping devices. When batteries degrade or overheat, lithium particles can be released into the aerosol.",
+        warn:"Chronic lithium exposure can affect kidney and thyroid function." },
+  4:  { sym:"Be", name:"Beryllium",     cat:"alkaline",   vape:false },
+  5:  { sym:"B",  name:"Boron",         cat:"metalloid",  vape:true,
+        carc:"no",
+        about:"Boron is a metalloid — it has properties of both metals and nonmetals. It's a hard, brittle solid at room temperature and is essential in trace amounts for plant growth.",
+        found:["Borax (laundry detergent)","Glass & ceramics","Antiseptics","Fire retardants","Cosmetics"],
+        vapeReason:"Boron is present in vape device components and solder materials. It can be released when the heating coil reaches high temperatures.",
+        warn:"High boron inhalation can irritate the respiratory tract and damage lungs over time." },
+  6:  { sym:"C",  name:"Carbon",        cat:"reactive",   vape:false },
+  7:  { sym:"N",  name:"Nitrogen",      cat:"reactive",   vape:false },
+  8:  { sym:"O",  name:"Oxygen",        cat:"reactive",   vape:false },
+  9:  { sym:"F",  name:"Fluorine",      cat:"reactive",   vape:true,
+        carc:"possible",
+        about:"Fluorine is the most electronegative and reactive of all elements — a pale yellow gas that is extremely corrosive. Even tiny amounts can be hazardous.",
+        found:["Toothpaste (as fluoride)","Non-stick coatings (Teflon)","Refrigerants","Pharmaceuticals","Water fluoridation"],
+        vapeReason:"Fluorine compounds are found in some vape device coatings (e.g., PTFE/Teflon used on coils). When overheated, these coatings release fluorine-based gases into aerosol.",
+        warn:"Fluorine gas and its compounds are highly toxic. Polymer fume fever — caused by overheating fluoropolymers — is a known health risk." },
+  10: { sym:"Ne", name:"Neon",          cat:"noble",      vape:false },
+  11: { sym:"Na", name:"Sodium",        cat:"alkali",     vape:true,
+        carc:"no",
+        about:"Sodium is a soft, highly reactive alkali metal that reacts violently with water. It's one of the most abundant elements on Earth and essential for human biology in the form of sodium ions.",
+        found:["Table salt (NaCl)","Baking soda","Food preservatives","IV saline solutions","Soap manufacturing"],
+        vapeReason:"Sodium compounds are present in some e-liquid flavorings and nicotine salt formulations. Sodium benzoate, a common preservative in e-liquids, breaks down under heat.",
+        warn:"When sodium benzoate is heated with ascorbic acid, it can form benzene — a known carcinogen." },
+  12: { sym:"Mg", name:"Magnesium",     cat:"alkaline",   vape:true,
+        carc:"no",
+        about:"Magnesium is a lightweight, silvery-white alkaline earth metal. It's the 8th most abundant element in Earth's crust and vital for hundreds of biochemical reactions in the body.",
+        found:["Antacids (milk of magnesia)","Dietary supplements","Aircraft alloys","Fireworks (bright white light)","Fertilizers"],
+        vapeReason:"Magnesium comes from vape device hardware — alloys used in the casing and internal components. Metallic wear releases magnesium particulates into aerosol.",
+        warn:"Inhaled magnesium oxide fumes can cause metal fume fever — chills, fever, and muscle aches." },
+  13: { sym:"Al", name:"Aluminium",     cat:"post",       vape:true,
+        carc:"possible",
+        about:"Aluminium is the most abundant metal in Earth's crust. It's lightweight, corrosion-resistant, and widely used in manufacturing. It does not occur naturally in its pure metallic form.",
+        found:["Beverage cans & foil","Aircraft & vehicles","Building materials","Cookware","Deodorants & antacids"],
+        vapeReason:"Aluminium is used extensively in vape device construction — in heating coils, chassis, and mouthpieces. Heat and airflow cause aluminium oxide nanoparticles to shed into aerosol.",
+        warn:"Aluminium nanoparticle inhalation is being studied for links to lung inflammation and neurological effects. Some research associates chronic aluminium exposure with Alzheimer's risk (still debated)." },
+  14: { sym:"Si", name:"Silicon",       cat:"metalloid",  vape:true,
+        carc:"possible",
+        about:"Silicon is the second most abundant element in Earth's crust (after oxygen). As a metalloid, it is a key semiconductor and the basis of modern computer chips.",
+        found:["Computer chips","Glass & ceramics","Silicone sealants","Solar panels","Sand (silicon dioxide)"],
+        vapeReason:"Silica fibers are used as wicking material in many vape coil systems. When heated, they can shed microscopic silica particles into the inhaled aerosol.",
+        warn:"Crystalline silica inhalation causes silicosis — a serious, irreversible lung disease. It is classified as a Group 1 carcinogen (IARC) when in crystalline form." },
+  15: { sym:"P",  name:"Phosphorus",    cat:"reactive",   vape:false },
+  16: { sym:"S",  name:"Sulfur",        cat:"reactive",   vape:true,
+        carc:"no",
+        about:"Sulfur is a bright yellow reactive nonmetal solid at room temperature. It has a characteristic 'rotten egg' odor in its compound form (hydrogen sulfide) and is vital to proteins and amino acids.",
+        found:["Matches & fireworks","Rubber vulcanization","Fertilizers","Pharmaceuticals","Preservatives (sulfites)"],
+        vapeReason:"Sulfur compounds appear in e-liquid flavorings and from nicotine itself, which is a sulfur-containing compound. Sulfur dioxide can form when these compounds are thermally degraded.",
+        warn:"Sulfur dioxide is a respiratory irritant linked to bronchospasm and worsened asthma, particularly in sensitive individuals." },
+  17: { sym:"Cl", name:"Chlorine",      cat:"reactive",   vape:false },
+  18: { sym:"Ar", name:"Argon",         cat:"noble",      vape:false },
+  19: { sym:"K",  name:"Potassium",     cat:"alkali",     vape:true,
+        carc:"no",
+        about:"Potassium is a soft, silvery-white alkali metal that reacts explosively with water. It is essential for human nerve and muscle function and is one of the most common elements in living tissue.",
+        found:["Fertilizers","Bananas & foods","Heart medications","Gunpowder","Salt substitutes"],
+        vapeReason:"Potassium is released from e-liquid ingredients and flavoring agents. Potassium sorbate, used as a preservative in some e-liquids, degrades under heat.",
+        warn:"While potassium itself is essential, inhaled potassium compounds at high concentrations can irritate airways and have unknown long-term effects on lung tissue." },
+  20: { sym:"Ca", name:"Calcium",       cat:"alkaline",   vape:true,
+        carc:"no",
+        about:"Calcium is the most abundant metal in the human body, making up most of our bones and teeth. As an alkaline earth metal, it's essential for muscle contraction, nerve signaling, and blood clotting.",
+        found:["Bones & teeth","Dairy products","Limestone & cement","Chalk","Antacids"],
+        vapeReason:"Calcium silicate is used as a filler and carrier in some e-liquid manufacturing processes. It can also come from mineral deposits in vape device components.",
+        warn:"Inhaled calcium particles at high concentrations can cause pulmonary irritation; calcium silicate dust has been studied for respiratory effects." },
+  21: { sym:"Sc", name:"Scandium",      cat:"transition", vape:false },
+  22: { sym:"Ti", name:"Titanium",      cat:"transition", vape:true,
+        carc:"possible",
+        about:"Titanium is a strong, lightweight, corrosion-resistant transition metal with a silvery appearance. It has the highest strength-to-weight ratio of any metal and is biocompatible, making it popular in medical implants.",
+        found:["Aircraft & spacecraft","Medical implants & prosthetics","Sunscreen (TiO₂)","Paint & coatings","Jewelry"],
+        vapeReason:"Titanium wire is used as a heating element in some advanced vape coils (especially in temperature-control modes). Heating releases titanium dioxide nanoparticles into aerosol.",
+        warn:"IARC classifies titanium dioxide as a possible Group 2B carcinogen when inhaled as fine particles. Studies show TiO₂ nanoparticles cause lung inflammation and DNA damage in animal models." },
+  23: { sym:"V",  name:"Vanadium",      cat:"transition", vape:true,
+        carc:"possible",
+        about:"Vanadium is a hard, steel-blue transition metal found naturally in many minerals, crude oil, and coal. It is used primarily in steel alloys to increase strength and wear resistance.",
+        found:["Steel alloys & tools","Fossil fuels","Ceramics","Nuclear reactors","Some marine organisms"],
+        vapeReason:"Vanadium contaminates some e-liquids due to trace amounts in nicotine extracted from tobacco, which naturally contains vanadium from soil absorption. It also comes from metallic device components.",
+        warn:"Vanadium pentoxide is a possible human carcinogen (IARC Group 2B). Vanadium inhalation is linked to respiratory irritation, bronchitis, and lung damage." },
+  24: { sym:"Cr", name:"Chromium",      cat:"transition", vape:true,
+        carc:"yes",
+        about:"Chromium is a hard, lustrous, steel-grey metal. In its trivalent form (Cr³⁺) it is an essential trace nutrient, but in its hexavalent form (Cr⁶⁺) it is one of the most dangerous environmental pollutants.",
+        found:["Stainless steel","Chrome plating","Leather tanning","Pigments & dyes","Catalytic converters"],
+        vapeReason:"Chromium comes from stainless steel heating coils used in most vaping devices. When the coil heats up repeatedly, it releases chromium particulates — including toxic hexavalent chromium (Cr⁶⁺) — into the aerosol.",
+        warn:"⚠️ Hexavalent chromium (Cr⁶⁺) is a confirmed human carcinogen (IARC Group 1). It causes lung cancer, nasal perforation, and is linked to liver and kidney damage." },
+  25: { sym:"Mn", name:"Manganese",     cat:"transition", vape:true,
+        carc:"no",
+        about:"Manganese is a silvery-grey transition metal essential for enzyme function, bone development, and metabolism. It is the fifth most abundant metal in Earth's crust.",
+        found:["Steel production","Dry cell batteries","Fertilizers","Welding rods","Dietary supplements"],
+        vapeReason:"Like chromium and nickel, manganese leaches from stainless steel and nichrome wire heating coils. It is released as metallic nanoparticles during vaping.",
+        warn:"Chronic manganese inhalation causes 'manganism' — a neurological disorder similar to Parkinson's disease, with tremors, rigidity, and cognitive decline." },
+  26: { sym:"Fe", name:"Iron",          cat:"transition", vape:true,
+        carc:"possible",
+        about:"Iron is the most common element on Earth by mass and the most widely used metal. It is essential for oxygen transport in blood (as hemoglobin) and plays a key role in cellular energy production.",
+        found:["Steel & cast iron","Blood (hemoglobin)","Fortified foods","Engine parts","Magnets"],
+        vapeReason:"Iron comes from steel and kanthal (iron-chromium-aluminum alloy) heating coils. Iron oxide nanoparticles are released during heating and become part of the inhaled aerosol.",
+        warn:"Excess iron inhalation is linked to lung oxidative stress. Iron oxide dust is classified as a possible carcinogen (IARC Group 2B) in occupational settings." },
+  27: { sym:"Co", name:"Cobalt",        cat:"transition", vape:true,
+        carc:"yes",
+        about:"Cobalt is a hard, lustrous, silver-grey transition metal with magnetic properties. It is a component of vitamin B12 and essential in trace amounts for human health.",
+        found:["Lithium-ion batteries","Blue pigments (cobalt blue)","Jet engine alloys","Vitamin B12","Hard metal tools"],
+        vapeReason:"Cobalt is released from lithium-cobalt-oxide batteries in vaping devices. When batteries degrade with heat and age, cobalt nanoparticles can contaminate the aerosol pathway.",
+        warn:"⚠️ Cobalt and cobalt compounds are classified as probably carcinogenic (IARC Group 2A). Inhalation is linked to hard metal lung disease, asthma, and lung fibrosis." },
+  28: { sym:"Ni", name:"Nickel",        cat:"transition", vape:true,
+        carc:"yes",
+        about:"Nickel is a silvery-white, corrosion-resistant transition metal with ferromagnetic properties at room temperature. It's widely used in alloys, electroplating, and coins.",
+        found:["Stainless steel & alloys","Coins","Jewelry & belt buckles","Rechargeable batteries","Catalysts"],
+        vapeReason:"Nickel-chromium (nichrome) wire is one of the most common vape coil materials. Repeated heating cycles release nickel compounds — including fine nickel oxide particles — directly into aerosol.",
+        warn:"⚠️ Nickel compounds are confirmed human carcinogens (IARC Group 1). They cause lung and nasal cancer. Nickel is also the #1 cause of allergic contact dermatitis worldwide." },
+  29: { sym:"Cu", name:"Copper",        cat:"transition", vape:true,
+        carc:"no",
+        about:"Copper is a soft, malleable, and ductile metal with very high thermal and electrical conductivity. Its reddish-orange color and antibacterial properties have made it valuable since ancient times.",
+        found:["Electrical wiring","Plumbing pipes","Coins","Cookware","Antifungal products"],
+        vapeReason:"Copper is used in vape device wiring and electrical contacts. Trace amounts oxidize and become airborne as copper oxide nanoparticles during heating.",
+        warn:"Inhaled copper fumes cause metal fume fever. Chronic inhalation can cause nasal perforation, kidney damage, and liver toxicity at high exposures." },
+  30: { sym:"Zn", name:"Zinc",          cat:"transition", vape:true,
+        carc:"no",
+        about:"Zinc is a bluish-white transition metal essential for immune function, wound healing, and DNA synthesis. It is the fourth most common metal used industrially.",
+        found:["Galvanized steel","Sunscreen (ZnO)","Batteries","Dietary supplements","Brass alloys"],
+        vapeReason:"Zinc oxide nanoparticles are released from vape hardware components and solder. Zinc is also used in some battery components and device coatings.",
+        warn:"Inhaling zinc oxide fumes is the classic cause of metal fume fever — a flu-like syndrome with fever, chills, and muscle aches that resolves within 24–48 hours of exposure." },
+  31: { sym:"Ga", name:"Gallium",       cat:"post",       vape:false },
+  32: { sym:"Ge", name:"Germanium",     cat:"metalloid",  vape:false },
+  33: { sym:"As", name:"Arsenic",       cat:"metalloid",  vape:true,
+        carc:"yes",
+        about:"Arsenic is a grey metalloid infamous for its toxicity. It occurs naturally in Earth's crust and in trace amounts in groundwater. It was historically used as a poison and in some medicines.",
+        found:["Groundwater (naturally)","Pesticides (historical)","Wood preservatives","Semiconductors","Some seafood (organic form)"],
+        vapeReason:"Arsenic enters vape aerosol from the tobacco-derived nicotine used in e-liquids. Tobacco plants absorb arsenic from soil and pesticide residues, which carry through the nicotine extraction process.",
+        warn:"⚠️ Arsenic is a confirmed human carcinogen (IARC Group 1). It causes cancers of the lung, skin, bladder, kidney, and liver. Even low-level chronic exposure is dangerous." },
+  34: { sym:"Se", name:"Selenium",      cat:"reactive",   vape:true,
+        carc:"possible",
+        about:"Selenium is a nonmetal with properties between sulfur and tellurium. In trace amounts it is an essential micronutrient and powerful antioxidant, but it is toxic at higher concentrations.",
+        found:["Brazil nuts","Dietary supplements","Photocopier drums","Semiconductors","Glass decolorizer"],
+        vapeReason:"Selenium is a trace contaminant in tobacco-derived nicotine. It transfers from tobacco leaf through nicotine extraction and into e-liquid, appearing in aerosol.",
+        warn:"Excessive selenium inhalation causes selenosis: hair loss, nail brittleness, neurological damage, and garlic-breath odor. At very high doses it is lethal." },
+  35: { sym:"Br", name:"Bromine",       cat:"reactive",   vape:false },
+  36: { sym:"Kr", name:"Krypton",       cat:"noble",      vape:false },
+  37: { sym:"Rb", name:"Rubidium",      cat:"alkali",     vape:true,
+        carc:"no",
+        about:"Rubidium is a soft, silvery-white alkali metal that ignites spontaneously in air. It is one of the most electropositive elements and has few commercial uses outside research.",
+        found:["Atomic clocks","Research applications","Fireworks (purple color)","Specialty glass","Medical imaging"],
+        vapeReason:"Rubidium is a trace contaminant in tobacco leaf (plants absorb it from soil). It persists through nicotine purification and appears in e-liquid and subsequently in aerosol.",
+        warn:"Rubidium has no confirmed carcinogenicity, but its biological effects from inhalation are not well-studied. It mimics potassium in the body and can disrupt cellular function." },
+  38: { sym:"Sr", name:"Strontium",     cat:"alkaline",   vape:true,
+        carc:"no",
+        about:"Strontium is a soft, silvery-yellow alkaline earth metal that reacts vigorously with water. Radioactive Sr-90 from nuclear fallout is a major health concern; stable strontium is far less harmful.",
+        found:["Fireworks (crimson red)","Color TV cathode ray tubes","Ceramic magnets","Toothpaste for sensitive teeth","Medical bone treatments"],
+        vapeReason:"Strontium is a trace metal contaminant found in tobacco plants (absorbed from soil). It carries through the nicotine extraction process into e-liquids.",
+        warn:"Stable strontium has low acute toxicity, but chronic inhalation can deposit in bone (it mimics calcium), potentially affecting bone density and development in adolescents." },
+  39: { sym:"Y",  name:"Yttrium",       cat:"transition", vape:false },
+  40: { sym:"Zr", name:"Zirconium",     cat:"transition", vape:true,
+        carc:"no",
+        about:"Zirconium is a lustrous, greyish-white, strong, corrosion-resistant transition metal. It is highly resistant to heat and chemical attack and is used in nuclear reactors because it doesn't absorb neutrons well.",
+        found:["Nuclear fuel rod cladding","Ceramics & refractory materials","Surgical instruments","Gemstones (cubic zirconia)","Antiperspirants"],
+        vapeReason:"Zirconium oxide (zirconia) is used as a ceramic wicking material in some premium vape coils as an alternative to silica. Heat degrades the ceramic and releases fine zirconium particles into aerosol.",
+        warn:"Zirconium compounds inhaled in occupational settings have been linked to granulomatous lung disease. The long-term effects of nanoparticle inhalation from vape coils are not fully understood." },
+  41: { sym:"Nb", name:"Niobium",       cat:"transition", vape:false },
+  42: { sym:"Mo", name:"Molybdenum",    cat:"transition", vape:false },
+  43: { sym:"Tc", name:"Technetium",    cat:"transition", vape:false },
+  44: { sym:"Ru", name:"Ruthenium",     cat:"transition", vape:false },
+  45: { sym:"Rh", name:"Rhodium",       cat:"transition", vape:false },
+  46: { sym:"Pd", name:"Palladium",     cat:"transition", vape:false },
+  47: { sym:"Ag", name:"Silver",        cat:"transition", vape:true,
+        carc:"no",
+        about:"Silver is a soft, white, lustrous transition metal with the highest electrical and thermal conductivity of any element. It has powerful antimicrobial properties and has been used in currency, jewelry, and medicine for millennia.",
+        found:["Jewelry & silverware","Electrical contacts & circuit boards","Photography","Antimicrobial coatings","Dental fillings"],
+        vapeReason:"Silver is used in electrical contacts and solder in vaping devices. Silver nanoparticles are also intentionally added to some e-liquids marketed as having 'antibacterial' properties.",
+        warn:"Chronic inhalation of silver nanoparticles can cause argyria (irreversible skin/mucous membrane graying) and lung inflammation. Nanoparticle silver is toxic to lung epithelial cells in lab studies." },
+  48: { sym:"Cd", name:"Cadmium",       cat:"transition", vape:true,
+        carc:"yes",
+        about:"Cadmium is a soft, bluish-white transition metal that is chemically very similar to zinc. It is extremely toxic and has no known biological role. It is a byproduct of zinc refining.",
+        found:["Rechargeable NiCd batteries","Yellow/orange pigments","Electroplating","Plastic stabilizers","Tobacco smoke"],
+        vapeReason:"Cadmium is one of the most dangerous metals in vape aerosol. It comes from nickel-cadmium battery components and as a contaminant in tobacco-derived nicotine. Cadmium accumulates in the kidneys and lungs.",
+        warn:"⚠️ Cadmium is a confirmed human carcinogen (IARC Group 1). It causes lung cancer, kidney failure, and 'itai-itai disease' (severe bone weakening). It has a biological half-life of 10–30 years in the body." },
+  49: { sym:"In", name:"Indium",        cat:"post",       vape:false },
+  50: { sym:"Sn", name:"Tin",           cat:"post",       vape:true,
+        carc:"no",
+        about:"Tin is a silvery, malleable post-transition metal with a low melting point. It resists corrosion and has been used in alloys since ancient times (bronze = copper + tin).",
+        found:["Solder (electronics)","Tin cans (steel coating)","Bronze alloys","Window glass manufacturing","Organotin compounds (PVC stabilizers)"],
+        vapeReason:"Tin is a primary component of solder used extensively in vape device electronics. When devices heat up, tin oxide particles and tin-lead solder fumes can be released into airflow paths.",
+        warn:"Tin oxide inhalation ('stannosis') causes lung changes visible on X-rays. Organotin compounds are more toxic, affecting the immune and nervous systems. Tin-lead solder raises additional lead exposure concerns." },
+  51: { sym:"Sb", name:"Antimony",      cat:"metalloid",  vape:false },
+  52: { sym:"Te", name:"Tellurium",     cat:"metalloid",  vape:false },
+  53: { sym:"I",  name:"Iodine",        cat:"reactive",   vape:false },
+  54: { sym:"Xe", name:"Xenon",         cat:"noble",      vape:false },
+  55: { sym:"Cs", name:"Caesium",       cat:"alkali",     vape:false },
+  56: { sym:"Ba", name:"Barium",        cat:"alkaline",   vape:true,
+        carc:"no",
+        about:"Barium is a soft, silvery alkaline earth metal that reacts with air, water, and acids. Soluble barium compounds are highly toxic; insoluble forms (barium sulfate) are used medically.",
+        found:["Fireworks (green color)","X-ray contrast agent (barium sulfate)","Oil drilling fluids","Rat poison (barium carbonate)","Glass manufacturing"],
+        vapeReason:"Barium is a trace contaminant in e-liquid from tobacco-sourced nicotine and from metal components in vaping hardware. Barium titanate is also used in some electronic components of vape devices.",
+        warn:"Soluble barium compounds are acutely toxic, causing muscle weakness, cardiac arrhythmia, and hypokalemia. Chronic inhalation of barium sulfate dust (barytosis) causes benign lung changes." },
+  57: { sym:"La", name:"Lanthanum",     cat:"lanthanide", vape:false },
+  72: { sym:"Hf", name:"Hafnium",       cat:"transition", vape:false },
+  73: { sym:"Ta", name:"Tantalum",      cat:"transition", vape:false },
+  74: { sym:"W",  name:"Tungsten",      cat:"transition", vape:false },
+  75: { sym:"Re", name:"Rhenium",       cat:"transition", vape:false },
+  76: { sym:"Os", name:"Osmium",        cat:"transition", vape:false },
+  77: { sym:"Ir", name:"Iridium",       cat:"transition", vape:false },
+  78: { sym:"Pt", name:"Platinum",      cat:"transition", vape:false },
+  79: { sym:"Au", name:"Gold",          cat:"transition", vape:false },
+  80: { sym:"Hg", name:"Mercury",       cat:"transition", vape:false },
+  81: { sym:"Tl", name:"Thallium",      cat:"post",       vape:false },
+  82: { sym:"Pb", name:"Lead",          cat:"post",       vape:true,
+        carc:"yes",
+        about:"Lead is a heavy, soft, malleable, and corrosion-resistant post-transition metal with a blue-grey color. It has been used by humans for thousands of years, but is now known to be highly toxic — especially to the developing brain.",
+        found:["Lead-acid batteries","Old paint (pre-1978)","Ammunition","Radiation shielding","Solder (old electronics)"],
+        vapeReason:"Lead is found in solder used in vape device circuits and as a trace contaminant from battery components. Studies by Johns Hopkins found lead concentrations in vape aerosol at levels exceeding EPA safety thresholds.",
+        warn:"⚠️ Lead is a confirmed carcinogen (IARC Group 2A) and a potent neurotoxin with NO safe level of exposure. In adolescents, it causes irreversible cognitive impairment, reduced IQ, behavioral problems, and hearing loss." },
+  83: { sym:"Bi", name:"Bismuth",       cat:"post",       vape:false },
+  84: { sym:"Po", name:"Polonium",      cat:"post",       vape:false },
+  85: { sym:"At", name:"Astatine",      cat:"reactive",   vape:false },
+  86: { sym:"Rn", name:"Radon",         cat:"noble",      vape:false },
+  87: { sym:"Fr", name:"Francium",      cat:"alkali",     vape:false },
+  88: { sym:"Ra", name:"Radium",        cat:"alkaline",   vape:false },
+  89: { sym:"Ac", name:"Actinium",      cat:"actinide",   vape:false },
+  104:{ sym:"Rf", name:"Rutherfordium", cat:"unknown",    vape:false },
+  105:{ sym:"Db", name:"Dubnium",       cat:"unknown",    vape:false },
+  106:{ sym:"Sg", name:"Seaborgium",    cat:"unknown",    vape:false },
+  107:{ sym:"Bh", name:"Bohrium",       cat:"unknown",    vape:false },
+  108:{ sym:"Hs", name:"Hassium",       cat:"unknown",    vape:false },
+  109:{ sym:"Mt", name:"Meitnerium",    cat:"unknown",    vape:false },
+  110:{ sym:"Ds", name:"Darmstadtium",  cat:"unknown",    vape:false },
+  111:{ sym:"Rg", name:"Roentgenium",   cat:"unknown",    vape:false },
+  112:{ sym:"Cn", name:"Copernicium",   cat:"unknown",    vape:false },
+  113:{ sym:"Nh", name:"Nihonium",      cat:"unknown",    vape:false },
+  114:{ sym:"Fl", name:"Flerovium",     cat:"unknown",    vape:false },
+  115:{ sym:"Mc", name:"Moscovium",     cat:"unknown",    vape:false },
+  116:{ sym:"Lv", name:"Livermorium",   cat:"unknown",    vape:false },
+  117:{ sym:"Ts", name:"Tennessine",    cat:"unknown",    vape:false },
+  118:{ sym:"Og", name:"Oganesson",     cat:"unknown",    vape:false },
+};
+
+/* Grid layout: [atomicNumber, gridColumn, gridRow] */
+const LAYOUT = [
+  [1,1,1],[2,18,1],
+  [3,1,2],[4,2,2],[5,13,2],[6,14,2],[7,15,2],[8,16,2],[9,17,2],[10,18,2],
+  [11,1,3],[12,2,3],[13,13,3],[14,14,3],[15,15,3],[16,16,3],[17,17,3],[18,18,3],
+  [19,1,4],[20,2,4],[21,3,4],[22,4,4],[23,5,4],[24,6,4],[25,7,4],[26,8,4],[27,9,4],[28,10,4],[29,11,4],[30,12,4],[31,13,4],[32,14,4],[33,15,4],[34,16,4],[35,17,4],[36,18,4],
+  [37,1,5],[38,2,5],[39,3,5],[40,4,5],[41,5,5],[42,6,5],[43,7,5],[44,8,5],[45,9,5],[46,10,5],[47,11,5],[48,12,5],[49,13,5],[50,14,5],[51,15,5],[52,16,5],[53,17,5],[54,18,5],
+  [55,1,6],[56,2,6],[57,3,6],[72,4,6],[73,5,6],[74,6,6],[75,7,6],[76,8,6],[77,9,6],[78,10,6],[79,11,6],[80,12,6],[81,13,6],[82,14,6],[83,15,6],[84,16,6],[85,17,6],[86,18,6],
+  [87,1,7],[88,2,7],[89,3,7],[104,4,7],[105,5,7],[106,6,7],[107,7,7],[108,8,7],[109,9,7],[110,10,7],[111,11,7],[112,12,7],[113,13,7],[114,14,7],[115,15,7],[116,16,7],[117,17,7],[118,18,7],
+];
+
+/* Lanthanides row */
+const LANT = [58,59,60,61,62,63,64,65,66,67,68,69,70,71];
+const LANT_SYMS = ['Ce','Pr','Nd','Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb','Lu'];
+const LANT_NAMES= ['Cerium','Praseodymium','Neodymium','Promethium','Samarium','Europium','Gadolinium','Terbium','Dysprosium','Holmium','Erbium','Thulium','Ytterbium','Lutetium'];
+
+/* Actinides row */
+const ACT = [90,91,92,93,94,95,96,97,98,99,100,101,102,103];
+const ACT_SYMS = ['Th','Pa','U','Np','Pu','Am','Cm','Bk','Cf','Es','Fm','Md','No','Lr'];
+const ACT_NAMES= ['Thorium','Protactinium','Uranium','Neptunium','Plutonium','Americium','Curium','Berkelium','Californium','Einsteinium','Fermium','Mendelevium','Nobelium','Lawrencium'];
+
+/* ══════════════════════════════════════════════════
+   BUILD GRID
+══════════════════════════════════════════════════ */
+function buildGrid() {
+  const grid = document.getElementById('pt-grid');
+
+  // Place main table elements
+  LAYOUT.forEach(([num, col, row]) => {
+    const el = ELEMENTS[num];
+    if (!el) return;
+    const cell = makeCell(num, el, col, row);
+    grid.appendChild(cell);
+  });
+
+  // Row 10: Lanthanides (grid row 10, after the 6px gap row 9)
+  const laSpacer = document.createElement('div');
+  laSpacer.className = 'el el-empty';
+  laSpacer.style.gridColumn = '1 / 4';
+  laSpacer.style.gridRow = '10';
+  grid.appendChild(laSpacer);
+  LANT.forEach((num, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'el el-sm cat-lanthanide';
+    cell.style.gridColumn = (4 + i) + '';
+    cell.style.gridRow = '10';
+    cell.innerHTML = `<span class="el-num">${num}</span><span class="el-sym">${LANT_SYMS[i]}</span><span class="el-name">${LANT_NAMES[i]}</span>`;
+    grid.appendChild(cell);
+  });
+
+  // Row 11: Actinides
+  const actSpacer = document.createElement('div');
+  actSpacer.className = 'el el-empty';
+  actSpacer.style.gridColumn = '1 / 4';
+  actSpacer.style.gridRow = '11';
+  grid.appendChild(actSpacer);
+  ACT.forEach((num, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'el el-sm cat-actinide';
+    cell.style.gridColumn = (4 + i) + '';
+    cell.style.gridRow = '11';
+    cell.innerHTML = `<span class="el-num">${num}</span><span class="el-sym">${ACT_SYMS[i]}</span><span class="el-name">${ACT_NAMES[i]}</span>`;
+    grid.appendChild(cell);
+  });
+}
+
+function makeCell(num, el, col, row) {
+  const div = document.createElement('div');
+  div.className = `el cat-${el.cat}` + (el.vape ? ' vape' : '');
+  div.style.gridColumn = col;
+  div.style.gridRow = row;
+  div.innerHTML = `<span class="el-num">${num}</span><span class="el-sym">${el.sym}</span><span class="el-name">${el.name}</span>`;
+  if (el.vape) {
+    div.setAttribute('title', `${el.name} — found in vape aerosol. Click for details.`);
+    div.addEventListener('click', () => openModal(num));
+  }
+  return div;
+}
+
+/* ══════════════════════════════════════════════════
+   MODAL
+══════════════════════════════════════════════════ */
+function openModal(num) {
+  const el = ELEMENTS[num];
+  if (!el || !el.vape) return;
+
+  // El box color
+  const box = document.getElementById('m-box');
+  box.className = 'modal-el-box cat-' + el.cat;
+  document.getElementById('m-num').textContent = num;
+  document.getElementById('m-sym').textContent = el.sym;
+  document.getElementById('m-ename').textContent = el.name;
+  document.getElementById('m-name').textContent = el.name;
+
+  // Category label
+  const catLabels = {
+    reactive:'Reactive Nonmetal', alkali:'Alkali Metal', alkaline:'Alkaline Earth Metal',
+    transition:'Transition Metal', metalloid:'Metalloid', post:'Post-Transition Metal',
+    noble:'Noble Gas', lanthanide:'Lanthanide', actinide:'Actinide', unknown:'Unknown'
+  };
+  document.getElementById('m-cat').textContent = catLabels[el.cat] || el.cat;
+
+  // Carcinogen badge
+  const carc = document.getElementById('m-carc');
+  if (el.carc === 'yes') {
+    carc.className = 'modal-carcinogen yes';
+    carc.innerHTML = '⚠ Confirmed Carcinogen';
+  } else if (el.carc === 'possible') {
+    carc.className = 'modal-carcinogen possible';
+    carc.innerHTML = '◎ Possible Carcinogen';
+  } else {
+    carc.className = 'modal-carcinogen no';
+    carc.innerHTML = '✓ Not Classified Carcinogenic';
+  }
+
+  document.getElementById('m-about').textContent = el.about || '';
+
+  // Found-in tags
+  const foundWrap = document.getElementById('m-found');
+  foundWrap.innerHTML = '';
+  (el.found || []).forEach(f => {
+    const tag = document.createElement('span');
+    tag.className = 'found-tag';
+    tag.textContent = f;
+    foundWrap.appendChild(tag);
+  });
+
+  document.getElementById('m-vape').textContent = el.vapeReason || '';
+
+  // Warning
+  const warn = document.getElementById('m-warn');
+  if (el.warn) {
+    warn.style.display = 'block';
+    warn.innerHTML = `<strong>Health Note:</strong> ${el.warn}`;
+  } else {
+    warn.style.display = 'none';
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+buildGrid();
+</script>
+</body>
+</html>

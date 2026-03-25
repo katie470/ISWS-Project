@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ASH Survey">
+    <meta name="theme-color" content="#2C4460">
+    <title>ASH Smartphone Survey</title>
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%233D5A80'/><text x='50' y='68' text-anchor='middle' font-size='50' font-family='serif' font-weight='bold' fill='%23E2B84A'>A</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --blue: #3D5A80;
+            --blue-dark: #2C4460;
+            --blue-light: #4A6FA5;
+            --red: #C9363F;
+            --red-dark: #A52D34;
+            --red-light: #E05A62;
+            --gold: #E2B84A;
+            --gold-dark: #C9A23E;
+            --gold-light: #F0CC6B;
+            --ink: #1A1A2E;
+            --text: #2D2D3F;
+            --text-sec: #5A5A72;
+            --bg: #F7F7FB;
+            --white: #FFFFFF;
+            --border: #E2E2EE;
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overscroll-behavior-y: none;
+            padding-bottom: calc(70px + var(--safe-bottom));
+        }
+
+        /* ── Top Bar ── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--blue-dark);
+            padding: calc(var(--safe-top) + 12px) 20px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .topbar-logo {
+            width: 32px; height: 32px;
+            background: var(--gold);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-weight: 700; font-size: 15px; color: var(--blue-dark);
+            flex-shrink: 0;
+        }
+        .topbar-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--white);
+        }
+
+        /* ── Hero ── */
+        .hero {
+            background: linear-gradient(160deg, var(--blue-dark) 0%, var(--blue) 60%, var(--blue-light) 100%);
+            padding: 2rem 1.25rem 1.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -40%; right: -30%;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(226,184,74,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.65rem;
+            color: var(--white);
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        .hero h1 span { color: var(--gold); }
+        .hero p {
+            color: rgba(255,255,255,0.72);
+            font-size: 0.88rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            position: relative;
+        }
+        .hero-stat {
+            background: rgba(255,255,255,0.09);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            padding: 1rem 0.5rem;
+            text-align: center;
+        }
+        .hero-stat-num {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--gold);
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .hero-stat-lbl {
+            color: rgba(255,255,255,0.65);
+            font-size: 0.65rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            line-height: 1.3;
+        }
+
+        /* ── Section ── */
+        .section {
+            padding: 2rem 1.25rem;
+        }
+        .section-dark {
+            background: var(--ink);
+            padding: 2rem 1.25rem;
+        }
+        .section-red {
+            background: linear-gradient(135deg, var(--red-dark) 0%, var(--red) 100%);
+            padding: 2rem 1.25rem;
+        }
+        .section-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+        }
+        .badge-blue { background: rgba(61,90,128,0.1); color: var(--blue); }
+        .badge-red { background: rgba(201,54,63,0.1); color: var(--red); }
+        .badge-gold { background: rgba(226,184,74,0.15); color: var(--gold-dark); }
+        .badge-white { background: rgba(255,255,255,0.15); color: var(--white); }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            color: var(--ink);
+            margin-bottom: 4px;
+            letter-spacing: -0.02em;
+        }
+        .section-dark .section-title,
+        .section-red .section-title { color: var(--white); }
+        .section-desc {
+            font-size: 0.85rem;
+            color: var(--text-sec);
+            margin-bottom: 1.5rem;
+        }
+        .section-dark .section-desc { color: rgba(255,255,255,0.55); }
+        .section-red .section-desc { color: rgba(255,255,255,0.75); }
+
+        /* ── Respondent Cards ── */
+        .resp-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 1.25rem;
+        }
+        .resp-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem 0.5rem;
+            text-align: center;
+            border-top: 3px solid var(--blue);
+        }
+        .resp-card:nth-child(2) { border-top-color: var(--red); }
+        .resp-card:nth-child(3) { border-top-color: var(--gold); }
+        .resp-card .rc-val {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--ink);
+        }
+        .resp-card .rc-lbl {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: var(--text-sec);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            line-height: 1.3;
+        }
+        .resp-card .rc-pct {
+            font-size: 0.72rem;
+            color: var(--text-sec);
+            margin-top: 2px;
+        }
+
+        /* ── Chart Cards ── */
+        .chart-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 12px rgba(61,90,128,0.06);
+        }
+        .chart-card h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+            line-height: 1.35;
+        }
+        .chart-card .ch-sub {
+            font-size: 0.75rem;
+            color: var(--text-sec);
+            margin-bottom: 1rem;
+        }
+
+        /* ── Filter Tabs ── */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 1.25rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 4px;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+        .tab {
+            padding: 8px 16px;
+            border: 2px solid var(--border);
+            border-radius: 100px;
+            background: var(--white);
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-sec);
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .tab.active { background: var(--blue); border-color: var(--blue); color: var(--white); }
+        .tab.active-red { background: var(--red); border-color: var(--red); color: var(--white); }
+        .tab.active-gold { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+
+        /* ── Comparison Bars ── */
+        .comp-block {
+            margin-bottom: 1.75rem;
+        }
+        .comp-block h4 {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--white);
+            margin-bottom: 0.75rem;
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .bar-lbl {
+            width: 80px;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.6);
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .bar-track {
+            flex: 1;
+            height: 30px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .bar-fill-blue { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+        .bar-fill-red { background: linear-gradient(90deg, var(--red), var(--red-light)); }
+        .bar-fill-gold { background: linear-gradient(90deg, var(--gold-dark), var(--gold)); }
+        .bar-pct {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--white);
+            white-space: nowrap;
+        }
+
+        /* ── Takeaways ── */
+        .takeaway {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 1.25rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .tk-icon {
+            width: 44px; height: 44px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .tk-icon-blue { background: rgba(61,90,128,0.25); }
+        .tk-icon-red { background: rgba(201,54,63,0.25); }
+        .tk-icon-gold { background: rgba(226,184,74,0.25); }
+        .takeaway h3 {
+            font-family: 'Playfair Display', serif;
+            color: var(--white);
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+        .takeaway p {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        /* ── Comments Carousel (swipeable) ── */
+        .comment-box {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            min-height: 210px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 16px rgba(61,90,128,0.08);
+            touch-action: pan-y;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .comment-quote {
+            font-size: 2.5rem;
+            color: var(--gold);
+            font-family: 'Playfair Display', serif;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+        .comment-text {
+            font-size: 0.95rem;
+            color: var(--text);
+            line-height: 1.65;
+            font-style: italic;
+            margin-bottom: 1rem;
+            transition: opacity 0.25s;
+        }
+        .comment-src {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .src-middle { background: rgba(201,54,63,0.1); color: var(--red); }
+        .src-both { background: rgba(226,184,74,0.15); color: var(--gold-dark); }
+        .src-elem { background: rgba(61,90,128,0.1); color: var(--blue); }
+
+        .comment-nav {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.25rem;
+            margin-top: 1.25rem;
+        }
+        .comment-btn {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--white);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            color: var(--text-sec);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: all 0.2s;
+        }
+        .comment-btn:active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: var(--white);
+            transform: scale(0.92);
+        }
+        .comment-counter {
+            font-size: 0.85rem;
+            color: var(--text-sec);
+            font-weight: 500;
+            min-width: 50px;
+            text-align: center;
+        }
+        .swipe-hint {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--text-sec);
+            margin-top: 0.75rem;
+            opacity: 0.7;
+        }
+
+        /* progress bar under comment */
+        .comment-progress {
+            width: 100%;
+            height: 3px;
+            background: var(--border);
+            border-radius: 2px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+        .comment-progress-fill {
+            height: 100%;
+            background: var(--blue);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+
+        /* ── Bottom Nav ── */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--white);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 calc(8px + var(--safe-bottom));
+            z-index: 100;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+        }
+        .bnav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            text-decoration: none;
+            color: var(--text-sec);
+            font-size: 0.62rem;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: color 0.2s;
+        }
+        .bnav-item.active { color: var(--blue); }
+        .bnav-item svg { width: 22px; height: 22px; }
+
+        /* ── Animations ── */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .fade-up.vis {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ── Accordion ── */
+        .accordion-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            transition: all 0.2s;
+        }
+        .accordion-header:active { background: #f0f0f8; }
+        .accordion-header h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .accordion-arrow {
+            width: 20px; height: 20px;
+            color: var(--text-sec);
+            transition: transform 0.3s;
+            flex-shrink: 0;
+        }
+        .accordion-header.open .accordion-arrow { transform: rotate(180deg); }
+        .accordion-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+        .accordion-body.open {
+            max-height: 2000px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══ Top Bar ═══ -->
+<div class="topbar">
+    <div class="topbar-logo">A</div>
+    <span class="topbar-text">ASH Parent Survey</span>
+</div>
+
+<!-- ═══ Hero ═══ -->
+<section class="hero" id="m-overview">
+    <h1>Smartphone Survey<br><span>Results</span></h1>
+    <p>Insights from 85 parent responses across elementary &amp; middle school families.</p>
+    <div class="hero-stats">
+        <div class="hero-stat">
+            <div class="hero-stat-num">85</div>
+            <div class="hero-stat-lbl">Total<br>Responses</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-num">86%</div>
+            <div class="hero-stat-lbl">Have<br>Concerns</div>
+        </div>
+        <div class="hero-stat">
+            <div class="hero-stat-num">74%</div>
+            <div class="hero-stat-lbl">Want to<br>Be Involved</div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ Respondents ═══ -->
+<section class="section" id="m-respondents">
+    <div class="fade-up">
+        <span class="section-badge badge-blue">Respondents</span>
+        <div class="section-title">Who Responded</div>
+        <div class="section-desc">85 parents, broken down by school level</div>
+    </div>
+    <div class="resp-cards fade-up">
+        <div class="resp-card">
+            <div class="rc-val">16</div>
+            <div class="rc-lbl">Elementary</div>
+            <div class="rc-pct">18.8%</div>
+        </div>
+        <div class="resp-card">
+            <div class="rc-val">46</div>
+            <div class="rc-lbl">Middle<br>School</div>
+            <div class="rc-pct">54.1%</div>
+        </div>
+        <div class="resp-card">
+            <div class="rc-val">23</div>
+            <div class="rc-lbl">Both<br>Levels</div>
+            <div class="rc-pct">27.1%</div>
+        </div>
+    </div>
+    <div class="chart-card fade-up">
+        <h3>Respondent Distribution</h3>
+        <div class="ch-sub">By grade level</div>
+        <div style="max-width:260px;margin:0 auto;">
+            <canvas id="mPie"></canvas>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ Concerns ═══ -->
+<section class="section" id="m-concerns">
+    <div class="fade-up">
+        <span class="section-badge badge-red">Key Findings</span>
+        <div class="section-title">Parent Concerns</div>
+        <div class="section-desc">Tap a group to filter the data</div>
+    </div>
+
+    <div class="tabs fade-up" id="mConcernTabs">
+        <button class="tab active" onclick="setMView('all',this)">All</button>
+        <button class="tab" onclick="setMView('elementary',this)">Elementary</button>
+        <button class="tab" onclick="setMView('middle',this)">Middle School</button>
+        <button class="tab" onclick="setMView('both',this)">Both Levels</button>
+    </div>
+
+    <!-- Accordion charts -->
+    <div class="fade-up" id="concernAccordions">
+        <div>
+            <div class="accordion-header open" onclick="toggleAccordion(this)">
+                <h3>Concerns About Own Child</h3>
+                <svg class="accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="accordion-body open">
+                <div class="chart-card"><canvas id="mConcernOwn"></canvas></div>
+            </div>
+        </div>
+        <div>
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <h3>Concerns About Peers</h3>
+                <svg class="accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="accordion-body">
+                <div class="chart-card"><canvas id="mConcernPeer"></canvas></div>
+            </div>
+        </div>
+        <div>
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <h3>Interest in Waiting</h3>
+                <svg class="accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="accordion-body">
+                <div class="chart-card"><canvas id="mWait"></canvas></div>
+            </div>
+        </div>
+        <div>
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <h3>"Wait Until 8th" Pledge</h3>
+                <svg class="accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="accordion-body">
+                <div class="chart-card"><canvas id="mPledge"></canvas></div>
+            </div>
+        </div>
+        <div>
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <h3>Smartphone Ownership</h3>
+                <svg class="accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="accordion-body">
+                <div class="chart-card"><canvas id="mOwnership"></canvas></div>
+            </div>
+        </div>
+        <div>
+            <div class="accordion-header" onclick="toggleAccordion(this)">
+                <h3>Want to Be Involved</h3>
+                <svg class="accordion-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="accordion-body">
+                <div class="chart-card"><canvas id="mInvolved"></canvas></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ Comparison ═══ -->
+<section class="section-dark" id="m-comparison">
+    <div class="fade-up">
+        <span class="section-badge badge-white">Side-by-Side</span>
+        <div class="section-title">Grade Level Comparison</div>
+        <div class="section-desc">Percentage answering "Yes" across groups</div>
+    </div>
+    <div class="fade-up" id="compBars">
+        <div class="comp-block">
+            <h4>Concerned About Own Child</h4>
+            <div class="bar-row"><span class="bar-lbl">Elementary</span><div class="bar-track"><div class="bar-fill bar-fill-blue" data-w="93.8"><span class="bar-pct">93.8%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Middle</span><div class="bar-track"><div class="bar-fill bar-fill-red" data-w="82.6"><span class="bar-pct">82.6%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Both</span><div class="bar-track"><div class="bar-fill bar-fill-gold" data-w="87.0"><span class="bar-pct">87.0%</span></div></div></div>
+        </div>
+        <div class="comp-block">
+            <h4>Concerned About Peers</h4>
+            <div class="bar-row"><span class="bar-lbl">Elementary</span><div class="bar-track"><div class="bar-fill bar-fill-blue" data-w="93.8"><span class="bar-pct">93.8%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Middle</span><div class="bar-track"><div class="bar-fill bar-fill-red" data-w="80.4"><span class="bar-pct">80.4%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Both</span><div class="bar-track"><div class="bar-fill bar-fill-gold" data-w="87.0"><span class="bar-pct">87.0%</span></div></div></div>
+        </div>
+        <div class="comp-block">
+            <h4>Interested in Waiting</h4>
+            <div class="bar-row"><span class="bar-lbl">Elementary</span><div class="bar-track"><div class="bar-fill bar-fill-blue" data-w="75.0"><span class="bar-pct">75.0%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Middle</span><div class="bar-track"><div class="bar-fill bar-fill-red" data-w="67.4"><span class="bar-pct">67.4%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Both</span><div class="bar-track"><div class="bar-fill bar-fill-gold" data-w="82.6"><span class="bar-pct">82.6%</span></div></div></div>
+        </div>
+        <div class="comp-block">
+            <h4>Interest in Pledge</h4>
+            <div class="bar-row"><span class="bar-lbl">Elementary</span><div class="bar-track"><div class="bar-fill bar-fill-blue" data-w="68.8"><span class="bar-pct">68.8%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Middle</span><div class="bar-track"><div class="bar-fill bar-fill-red" data-w="65.2"><span class="bar-pct">65.2%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Both</span><div class="bar-track"><div class="bar-fill bar-fill-gold" data-w="60.9"><span class="bar-pct">60.9%</span></div></div></div>
+        </div>
+        <div class="comp-block">
+            <h4>Want to Be Involved</h4>
+            <div class="bar-row"><span class="bar-lbl">Elementary</span><div class="bar-track"><div class="bar-fill bar-fill-blue" data-w="93.8"><span class="bar-pct">93.8%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Middle</span><div class="bar-track"><div class="bar-fill bar-fill-red" data-w="69.6"><span class="bar-pct">69.6%</span></div></div></div>
+            <div class="bar-row"><span class="bar-lbl">Both</span><div class="bar-track"><div class="bar-fill bar-fill-gold" data-w="69.6"><span class="bar-pct">69.6%</span></div></div></div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ Key Takeaways ═══ -->
+<section class="section-red" id="m-takeaways">
+    <div class="fade-up">
+        <span class="section-badge badge-white">Insights</span>
+        <div class="section-title">Key Takeaways</div>
+        <div class="section-desc">The most important themes</div>
+    </div>
+    <div class="fade-up">
+        <div class="takeaway">
+            <div class="tk-icon tk-icon-blue">
+                <svg width="24" height="24" fill="none" stroke="#7BAFD4" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>
+            </div>
+            <div>
+                <h3>Near-Universal Concern</h3>
+                <p>86% of all parents expressed concern, with elementary parents at 94%.</p>
+            </div>
+        </div>
+        <div class="takeaway">
+            <div class="tk-icon tk-icon-red">
+                <svg width="24" height="24" fill="none" stroke="#E88A90" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            </div>
+            <div>
+                <h3>Peer Pressure Is Real</h3>
+                <p>85% are also concerned about peers' smartphones, highlighting social pressure.</p>
+            </div>
+        </div>
+        <div class="takeaway">
+            <div class="tk-icon tk-icon-gold">
+                <svg width="24" height="24" fill="none" stroke="#E8C86B" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87m-4-12a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+                <h3>Strong Community Interest</h3>
+                <p>74% of parents want conversations with other families about policies.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ Comments ═══ -->
+<section class="section" id="m-comments">
+    <div class="fade-up">
+        <span class="section-badge badge-blue">Voices</span>
+        <div class="section-title">What Parents Are Saying</div>
+        <div class="section-desc">Swipe or tap arrows to browse comments</div>
+    </div>
+
+    <div class="tabs fade-up" id="mCommentTabs">
+        <button class="tab active" onclick="mFilterComments('all',this)">All</button>
+        <button class="tab" onclick="mFilterComments('middle',this)">Middle School</button>
+        <button class="tab" onclick="mFilterComments('both',this)">Both Levels</button>
+    </div>
+
+    <div class="fade-up">
+        <div class="comment-box" id="mCommentBox">
+            <div class="comment-quote">&ldquo;</div>
+            <div class="comment-text" id="mCommentText">Loading...</div>
+            <div class="comment-src" id="mCommentSrc">Parent</div>
+            <div class="comment-progress">
+                <div class="comment-progress-fill" id="mProgress"></div>
+            </div>
+        </div>
+        <div class="comment-nav">
+            <button class="comment-btn" onclick="mPrev()" aria-label="Previous">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <span class="comment-counter" id="mCounter">1 / 24</span>
+            <button class="comment-btn" onclick="mNext()" aria-label="Next">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+        <div class="swipe-hint">Swipe left or right to navigate</div>
+    </div>
+</section>
+
+<!-- ═══ Footer spacer ═══ -->
+<div style="padding:2rem 1.25rem;text-align:center;">
+    <p style="font-size:0.75rem;color:var(--text-sec);">ASH Smartphone Survey Dashboard<br>85 parent responses</p>
+</div>
+
+<!-- ═══ Bottom Nav ═══ -->
+<nav class="bottom-nav">
+    <a href="#m-overview" class="bnav-item active" data-section="m-overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg>
+        Overview
+    </a>
+    <a href="#m-concerns" class="bnav-item" data-section="m-concerns">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4"/></svg>
+        Data
+    </a>
+    <a href="#m-comparison" class="bnav-item" data-section="m-comparison">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h6"/></svg>
+        Compare
+    </a>
+    <a href="#m-comments" class="bnav-item" data-section="m-comments">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+        Comments
+    </a>
+</nav>
+
+<script>
+// ─── Colors ───
+const BL = '#3D5A80', BL_L = '#4A6FA5', RD = '#C9363F', RD_L = '#E05A62', GL = '#E2B84A', GL_L = '#F0CC6B';
+
+// ─── Data ───
+const D = {
+    elementary: { n:16, concernOwn:{y:15,n:1,u:0}, concernPeer:{y:15,n:1,u:0}, wait:{y:12,n:1,u:3}, pledge:{y:11,n:1,u:4}, involved:{y:15,n:0,u:1}, own:{noP:11,yL:1,no:2,u:1} },
+    middle:     { n:46, concernOwn:{y:38,n:5,u:2}, concernPeer:{y:37,n:5,u:4}, wait:{y:31,n:10,u:3}, pledge:{y:30,n:5,u:9}, involved:{y:32,n:5,u:9}, own:{noP:23,yL:18,no:3,u:1} },
+    both:       { n:23, concernOwn:{y:20,n:3,u:0}, concernPeer:{y:20,n:3,u:0}, wait:{y:19,n:3,u:1}, pledge:{y:14,n:5,u:3}, involved:{y:16,n:3,u:4}, own:{noP:13,yL:8,no:2,u:0} }
+};
+
+// ─── Chart defaults ───
+Chart.defaults.font.family = "'Inter', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#5A5A72';
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.padding = 12;
+Chart.defaults.plugins.legend.labels.font = { size: 10 };
+
+// ─── Pie ───
+new Chart(document.getElementById('mPie'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Elementary (16)', 'Middle School (46)', 'Both (23)'],
+        datasets: [{ data: [16,46,23], backgroundColor: [BL, RD, GL], borderWidth: 2, borderColor: '#fff', hoverOffset: 6 }]
+    },
+    options: { cutout: '58%', plugins: { legend: { position: 'bottom' } } }
+});
+
+// ─── Switchable concern charts ───
+let mView = 'all';
+let mCharts = {};
+
+const FIELDS = [
+    ['mConcernOwn','concernOwn'],
+    ['mConcernPeer','concernPeer'],
+    ['mWait','wait'],
+    ['mPledge','pledge'],
+    ['mOwnership','own'],
+    ['mInvolved','involved']
+];
+
+function mChartData(field, view) {
+    if (field === 'own') {
+        if (view === 'all') {
+            return {
+                type: 'bar',
+                data: {
+                    labels: ['Elementary','Middle','Both'],
+                    datasets: [
+                        { label: 'No Phone', data: [D.elementary.own.noP, D.middle.own.noP, D.both.own.noP], backgroundColor: BL, borderRadius: 5 },
+                        { label: 'Has + Wants Limits', data: [D.elementary.own.yL, D.middle.own.yL, D.both.own.yL], backgroundColor: RD, borderRadius: 5 },
+                        { label: 'No Limits Needed', data: [D.elementary.own.no, D.middle.own.no, D.both.own.no], backgroundColor: GL, borderRadius: 5 },
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: { x: { stacked: true, display: false }, y: { stacked: true, grid: { display: false } } },
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            };
+        }
+        const d = D[view].own;
+        return {
+            type: 'doughnut',
+            data: { labels: ['No Phone','Has + Wants Limits','No Limits','Undecided'], datasets: [{ data: [d.noP, d.yL, d.no, d.u], backgroundColor: [BL, RD, GL, '#C4C4D4'], borderWidth: 2, borderColor: '#fff' }] },
+            options: { cutout: '50%', plugins: { legend: { position: 'bottom' } } }
+        };
+    }
+    if (view === 'all') {
+        return {
+            type: 'bar',
+            data: {
+                labels: ['Elementary','Middle School','Both Levels'],
+                datasets: [{ label: 'Yes', data: [D.elementary[field].y, D.middle[field].y, D.both[field].y], backgroundColor: [BL, RD, GL], borderRadius: 6 }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' } }, x: { grid: { display: false } } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: c => { const t=[16,46,23]; return `${c.raw} (${((c.raw/t[c.dataIndex])*100).toFixed(1)}%)`; } } }
+                }
+            }
+        };
+    }
+    const d = D[view][field];
+    const labels = ['Yes'], data = [d.y], colors = [view==='elementary'?BL:view==='middle'?RD:GL];
+    if (d.n > 0) { labels.push('No'); data.push(d.n); colors.push('#C4C4D4'); }
+    if (d.u > 0) { labels.push('Undecided'); data.push(d.u); colors.push('#E8E8F0'); }
+    return {
+        type: 'doughnut',
+        data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }] },
+        options: { cutout: '50%', plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => `${c.label}: ${c.raw} (${((c.raw/D[view].n)*100).toFixed(1)}%)` } } } }
+    };
+}
+
+function buildMCharts() {
+    FIELDS.forEach(([id, field]) => {
+        if (mCharts[id]) mCharts[id].destroy();
+        const cfg = mChartData(field, mView);
+        mCharts[id] = new Chart(document.getElementById(id), cfg);
+    });
+}
+buildMCharts();
+
+function setMView(view, el) {
+    mView = view;
+    document.querySelectorAll('#mConcernTabs .tab').forEach(t => t.className = 'tab');
+    const cls = view === 'middle' ? 'tab active-red' : view === 'both' ? 'tab active-gold' : 'tab active';
+    el.className = cls;
+    buildMCharts();
+}
+
+// ─── Accordion ───
+function toggleAccordion(header) {
+    const body = header.nextElementSibling;
+    const isOpen = header.classList.contains('open');
+    header.classList.toggle('open');
+    body.classList.toggle('open');
+}
+
+// ─── Animated bars ───
+function animBars() {
+    document.querySelectorAll('.bar-fill[data-w]').forEach(b => {
+        b.style.width = b.getAttribute('data-w') + '%';
+    });
+}
+
+// ─── Comments ───
+const COMMENTS = [
+    { t: "It was easier to wait with my older two but I'm struggling to rein in my 7th grader's usage. He's on it a lot.", g: 'middle' },
+    { t: "I was thinking of launching an initiative like this! Please count me in.", g: 'middle' },
+    { t: "I also have concerns about what kids can access from the school laptop browsers.", g: 'middle' },
+    { t: "I never heard of the Parent Pact or Wait until 8th, but I am all for waiting for smartphones.", g: 'middle' },
+    { t: "I would like to know if the school can block the use of games on the school laptops.", g: 'middle' },
+    { t: "I also believe that the distribution of laptops to children, with the ability to play games like Roblox, is problematic.", g: 'middle' },
+    { t: "Please share the survey results. I think it would also be helpful to find out what level of knowledge parents have.", g: 'middle' },
+    { t: "Love that you are starting this initiative!", g: 'middle' },
+    { t: "I think it's joint parent support that's needed. If most middle school kids don't have a smartphone then it is accepted not to have one.", g: 'middle' },
+    { t: "I do not see a problem in my child using a smartphone. Just like everything else it requires attention and limitations.", g: 'middle' },
+    { t: "I fully support all efforts to limit both smartphone AND laptop use at school.", g: 'middle' },
+    { t: "My child does not use any social media, so having a smartphone is not an issue for her.", g: 'middle' },
+    { t: "My children do not get a smartphone until grade 7 \u2014 it is a compromise mainly because of everybody else getting it early.", g: 'middle' },
+    { t: "The book by Jonathan Haidt, 'The Anxious Generation' has been an eye-opener and a panic button for me.", g: 'middle' },
+    { t: "We, as parents, would love to have other kids' access to smartphones limited as well.", g: 'middle' },
+    { t: "I think the longer we can wait to give them phones the better.", g: 'both' },
+    { t: "My middle schooler has one but it's so we can track him since he's off on his own a lot.", g: 'both' },
+    { t: "This is a wonderful start to helping children stay kids for as long as possible.", g: 'both' },
+    { t: "My child did not have a phone until we arrived in NL in middle school, but has strict limitations.", g: 'both' },
+    { t: "Let's read 'Anxious Generation' together and talk about it as parents!", g: 'both' },
+    { t: "I recommend waiting until age 16 for a smartphone or similar device.", g: 'both' },
+    { t: "I think this is the biggest health and development issue facing our children right now.", g: 'both' },
+    { t: "I'm a parent of three children at ASH, and also a software engineer currently researching this topic.", g: 'both' },
+    { t: "I believe children should not have mobile phones \u2014 later is better. At a young age, they are still developing.", g: 'both' }
+];
+
+let mFiltered = [...COMMENTS], mIdx = 0;
+
+function mRender() {
+    const c = mFiltered[mIdx];
+    document.getElementById('mCommentText').textContent = c.t;
+    const src = document.getElementById('mCommentSrc');
+    src.textContent = c.g === 'middle' ? 'Middle School Parent' : c.g === 'both' ? 'Parent \u2014 Both Levels' : 'Elementary Parent';
+    src.className = 'comment-src ' + (c.g === 'middle' ? 'src-middle' : c.g === 'both' ? 'src-both' : 'src-elem');
+    document.getElementById('mCounter').textContent = `${mIdx+1} / ${mFiltered.length}`;
+    document.getElementById('mProgress').style.width = ((mIdx+1)/mFiltered.length*100) + '%';
+}
+function mNext() { mIdx = (mIdx+1) % mFiltered.length; mRender(); }
+function mPrev() { mIdx = (mIdx-1+mFiltered.length) % mFiltered.length; mRender(); }
+function mFilterComments(g, el) {
+    document.querySelectorAll('#mCommentTabs .tab').forEach(t => t.className = 'tab');
+    el.className = 'tab active';
+    mFiltered = g === 'all' ? [...COMMENTS] : COMMENTS.filter(c => c.g === g);
+    mIdx = 0; mRender();
+}
+mRender();
+
+// ─── Touch swipe for comments ───
+let touchStartX = 0, touchEndX = 0;
+const commentBox = document.getElementById('mCommentBox');
+commentBox.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+commentBox.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 50) {
+        if (diff > 0) mNext(); else mPrev();
+    }
+});
+
+// ─── Intersection Observer ───
+const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (e.isIntersecting) {
+            e.target.classList.add('vis');
+            if (e.target.id === 'compBars' || e.target.closest('#m-comparison')) animBars();
+        }
+    });
+}, { threshold: 0.12 });
+document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
+
+// ─── Bottom nav active state ───
+const sections = ['m-overview','m-concerns','m-comparison','m-comments'];
+const navItems = document.querySelectorAll('.bnav-item');
+
+function updateNav() {
+    let current = sections[0];
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= 120) current = id;
+    });
+    navItems.forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-section') === current);
+    });
+}
+window.addEventListener('scroll', updateNav, { passive: true });
+</script>
+</body>
+</html>

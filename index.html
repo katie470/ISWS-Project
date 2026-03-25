@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>International School Wellness Survey</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:        #0D7377;
+      --teal-dark:   #095c60;
+      --teal-mid:    #14a8ad;
+      --teal-light:  #e6f4f5;
+      --teal-xlight: #f0fafb;
+      --coral:       #E8644A;
+      --coral-light: #fdeee9;
+      --gold:        #D4A853;
+      --gold-light:  #fdf6e9;
+      --ink:         #111827;
+      --ink-mid:     #1f2937;
+      --text:        #374151;
+      --text-light:  #6b7280;
+      --border:      #e5e7eb;
+      --grey:        #f9fafb;
+      --white:       #ffffff;
+      --radius:      4px;
+      --radius-lg:   10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.6;
+      font-size: 16px;
+    }
+
+    /* ── NAV ──────────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--ink);
+      padding: 0 5%;
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .logo-mark {
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { width: 38px; height: 38px; }
+
+    .logo-wordmark {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.9);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .logo-wordmark span {
+      display: block;
+      font-weight: 300;
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.08em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2.2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      text-decoration: none;
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.65);
+      letter-spacing: 0.04em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--white); }
+
+    .nav-cta {
+      color: var(--white) !important;
+      border: 1px solid rgba(255,255,255,0.3) !important;
+      padding: 7px 18px;
+      border-radius: 2px;
+      font-weight: 500 !important;
+      transition: background 0.2s, border-color 0.2s !important;
+    }
+    .nav-cta:hover { background: rgba(255,255,255,0.1) !important; border-color: var(--white) !important; }
+
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 1.5px;
+      background: rgba(255,255,255,0.7);
+      transition: all 0.3s;
+    }
+
+    /* ── HERO ─────────────────────────────────────────────── */
+    #home {
+      min-height: 94vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-left {
+      background: var(--ink);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 8% 8% 8% 8%;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* radiating lines behind hero left */
+    .hero-left::before {
+      content: '';
+      position: absolute;
+      bottom: -120px;
+      right: -120px;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      border: 1px solid rgba(13,115,119,0.25);
+      box-shadow:
+        0 0 0 60px rgba(13,115,119,0.06),
+        0 0 0 120px rgba(13,115,119,0.04),
+        0 0 0 200px rgba(13,115,119,0.025);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal-mid);
+      margin-bottom: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 28px;
+      height: 1px;
+      background: var(--teal-mid);
+    }
+
+    .hero-left h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(2.6rem, 4.5vw, 4rem);
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 1.6rem;
+      letter-spacing: -0.01em;
+    }
+    .hero-left h1 em {
+      font-style: italic;
+      color: var(--gold);
+    }
+
+    .hero-left p {
+      font-size: 1rem;
+      color: rgba(255,255,255,0.65);
+      line-height: 1.8;
+      max-width: 440px;
+      margin-bottom: 2.8rem;
+      font-weight: 300;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 4rem;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: var(--white);
+      padding: 13px 28px;
+      border-radius: 2px;
+      font-weight: 500;
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      transition: background 0.2s;
+      display: inline-block;
+    }
+    .btn-primary:hover { background: var(--teal-dark); }
+
+    .btn-ghost {
+      background: transparent;
+      color: rgba(255,255,255,0.7);
+      padding: 13px 28px;
+      border-radius: 2px;
+      font-weight: 400;
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.2);
+      transition: border-color 0.2s, color 0.2s;
+      display: inline-block;
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.55); color: var(--white); }
+
+    .hero-divider {
+      width: 40px;
+      height: 1px;
+      background: rgba(255,255,255,0.15);
+      margin-bottom: 2rem;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+    }
+    .stat-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .hero-right {
+      position: relative;
+      background: var(--teal-dark);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* COBE interactive globe canvas */
+    #globe-canvas {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      contain: layout paint size;
+    }
+
+    .pin-label {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.8);
+      letter-spacing: 0.04em;
+      text-transform: none;
+      white-space: nowrap;
+      background: rgba(0,0,0,0.4);
+      padding: 2px 8px;
+      border-radius: 2px;
+    }
+
+    /* ── SHARED SECTION STYLES ────────────────────────────── */
+    section { padding: 100px 5%; }
+
+    .container {
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--teal);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 1.2rem;
+    }
+    .eyebrow::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--teal);
+    }
+
+    .section-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: clamp(1.9rem, 3.5vw, 2.8rem);
+      color: var(--ink);
+      line-height: 1.15;
+      letter-spacing: -0.01em;
+      margin-bottom: 1rem;
+    }
+    .section-title em {
+      font-style: italic;
+      color: var(--teal);
+    }
+
+    .section-lead {
+      font-size: 1.05rem;
+      color: var(--text-light);
+      line-height: 1.8;
+      font-weight: 300;
+      max-width: 560px;
+    }
+
+    /* ── ABOUT ────────────────────────────────────────────── */
+    #about {
+      background: var(--white);
+      border-top: 1px solid var(--border);
+    }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 8rem;
+      align-items: center;
+    }
+
+    .about-body {
+      margin-top: 1.6rem;
+    }
+    .about-body p {
+      font-size: 0.96rem;
+      color: var(--text);
+      line-height: 1.85;
+      margin-bottom: 1.1rem;
+      font-weight: 300;
+    }
+
+    .about-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 2rem;
+    }
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--teal);
+      border: 1px solid rgba(13,115,119,0.3);
+      padding: 5px 13px;
+      border-radius: 2px;
+      background: var(--teal-xlight);
+    }
+
+    .about-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .about-stat-block {
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .about-stat-block:first-child { border-top: 1px solid var(--border); }
+
+    .about-stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.6rem;
+      font-weight: 700;
+      color: var(--teal);
+      line-height: 1;
+    }
+    .about-stat-label {
+      font-size: 0.82rem;
+      color: var(--text-light);
+      margin-top: 6px;
+      font-weight: 400;
+    }
+
+    /* ── EXPERTS ──────────────────────────────────────────── */
+    #experts {
+      background: var(--grey);
+      border-top: 1px solid var(--border);
+    }
+
+    .experts-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: end;
+      margin-bottom: 4rem;
+    }
+    .experts-header-right {
+      padding-bottom: 4px;
+    }
+    .experts-header-right p {
+      font-size: 0.95rem;
+      color: var(--text-light);
+      line-height: 1.8;
+      font-weight: 300;
+    }
+
+    .experts-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 16px;
+    }
+
+    .expert-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      padding: 28px 16px 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .expert-card:hover {
+      border-color: var(--teal-mid);
+      box-shadow: 0 4px 20px rgba(13,115,119,0.1);
+    }
+
+    .expert-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 2px solid var(--border);
+    }
+
+    .expert-card:nth-child(1) .expert-avatar { background: linear-gradient(135deg, #e6f4f5, #c4e6e8); }
+    .expert-card:nth-child(2) .expert-avatar { background: linear-gradient(135deg, #fdeee9, #f9c9b8); }
+    .expert-card:nth-child(3) .expert-avatar { background: linear-gradient(135deg, #fdf6e9, #f0ddb5); }
+    .expert-card:nth-child(4) .expert-avatar { background: linear-gradient(135deg, #eef2ff, #c7d2fe); }
+    .expert-card:nth-child(5) .expert-avatar { background: linear-gradient(135deg, #fdf2f8, #f5c6e7); }
+    .expert-card:nth-child(6) .expert-avatar { background: linear-gradient(135deg, #f0fdf4, #bbf7d0); }
+
+    .expert-name {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--ink);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .expert-title {
+      font-size: 0.75rem;
+      color: var(--text-light);
+      line-height: 1.45;
+      font-weight: 300;
+    }
+
+    @media (max-width: 1000px) {
+      .experts-grid { grid-template-columns: repeat(3, 1fr); }
+      .experts-header { grid-template-columns: 1fr; gap: 1.5rem; }
+    }
+    @media (max-width: 560px) {
+      .experts-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── PILLARS ──────────────────────────────────────────── */
+    #pillars {
+      background: var(--ink);
+      border-top: none;
+    }
+
+    .pillars-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      align-items: end;
+      margin-bottom: 5rem;
+    }
+    .pillars-header .eyebrow { color: var(--teal-mid); }
+    .pillars-header .eyebrow::before { background: var(--teal-mid); }
+    .pillars-header .section-title { color: var(--white); }
+    .pillars-header .section-lead { color: rgba(255,255,255,0.5); }
+
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .pillar {
+      padding: 48px 36px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .pillar:last-child { border-right: none; }
+    .pillar:hover { background: rgba(255,255,255,0.03); }
+
+    .pillar-accent {
+      width: 32px;
+      height: 3px;
+      margin: 0 auto 1.8rem;
+    }
+    .pillar:nth-child(1) .pillar-accent { background: var(--teal-mid); }
+    .pillar:nth-child(2) .pillar-accent { background: var(--coral); }
+    .pillar:nth-child(3) .pillar-accent { background: var(--gold); }
+
+    .pillar-icon {
+      font-size: 2rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .pillar h3 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 1.35rem;
+      color: var(--white);
+      margin-bottom: 0.8rem;
+      letter-spacing: -0.01em;
+    }
+
+    .pillar p {
+      font-size: 0.88rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.8;
+      font-weight: 300;
+      text-align: center;
+    }
+
+    /* big faint number watermark */
+    .pillar::after {
+      content: attr(data-num);
+      position: absolute;
+      bottom: -10px;
+      right: 16px;
+      font-family: 'Playfair Display', serif;
+      font-size: 6rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.03);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* ── HOW IT WORKS ─────────────────────────────────────── */
+    #how {
+      background: var(--white);
+      border-top: 1px solid var(--border);
+    }
+
+    .how-intro {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5rem;
+      align-items: end;
+      margin-bottom: 5rem;
+    }
+    .how-intro-right .section-lead { max-width: none; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .step-card {
+      padding: 44px 36px 44px 0;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+    .step-card:last-child { border-right: none; padding-right: 0; }
+    .step-card:not(:first-child) { padding-left: 36px; }
+
+    .step-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--teal);
+      letter-spacing: 0.12em;
+      margin-bottom: 1.6rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-num::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+      max-width: 40px;
+    }
+
+    .step-card h3 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: var(--ink);
+      margin-bottom: 0.9rem;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+    }
+
+    .step-card p {
+      font-size: 0.88rem;
+      color: var(--text-light);
+      line-height: 1.8;
+      font-weight: 300;
+    }
+
+    /* ── CONTACT ──────────────────────────────────────────── */
+    #contact {
+      background: var(--grey);
+      border-top: 1px solid var(--border);
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      gap: 8rem;
+      align-items: start;
+    }
+
+    .contact-left {
+      padding-top: 8px;
+    }
+    .contact-left .section-title {
+      margin-bottom: 1.2rem;
+    }
+    .contact-left > p {
+      font-size: 0.96rem;
+      color: var(--text-light);
+      line-height: 1.85;
+      font-weight: 300;
+      margin-bottom: 2.5rem;
+    }
+
+    .contact-info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .ci-line {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .ci-content {
+      font-size: 0.85rem;
+    }
+    .ci-content strong {
+      display: block;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-light);
+      margin-bottom: 2px;
+    }
+    .ci-content span { color: var(--ink); font-weight: 400; }
+
+    /* form panel */
+    .contact-form-wrap {
+      background: var(--white);
+      border: 1px solid var(--border);
+      padding: 44px 40px;
+    }
+
+    .contact-form-wrap h3 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: var(--ink);
+      margin-bottom: 28px;
+      letter-spacing: -0.01em;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 7px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      color: var(--ink);
+      background: var(--white);
+      transition: border-color 0.2s;
+      outline: none;
+      appearance: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--teal);
+    }
+    .form-group textarea { resize: vertical; min-height: 100px; }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--ink);
+      color: var(--white);
+      border: none;
+      padding: 14px;
+      border-radius: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { background: var(--teal-dark); }
+
+    .form-note {
+      font-size: 0.72rem;
+      color: var(--text-light);
+      text-align: center;
+      margin-top: 12px;
+    }
+
+    .form-success {
+      display: none;
+      text-align: center;
+      padding: 2.5rem 1rem;
+    }
+    .form-success .success-line {
+      width: 40px;
+      height: 2px;
+      background: var(--teal);
+      margin: 0 auto 1.5rem;
+    }
+    .form-success h4 {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: var(--ink);
+      margin-bottom: 0.6rem;
+    }
+    .form-success p { color: var(--text-light); font-size: 0.9rem; }
+
+    /* ── FOOTER ───────────────────────────────────────────── */
+    footer {
+      background: var(--ink-mid);
+      padding: 56px 5% 36px;
+    }
+
+    .footer-inner {
+      max-width: 1140px;
+      margin: 0 auto;
+    }
+
+    .footer-top {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr;
+      gap: 4rem;
+      padding-bottom: 3rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 2rem;
+    }
+
+    .footer-brand .logo-wordmark {
+      font-size: 0.88rem;
+      margin-bottom: 10px;
+    }
+    .footer-tagline {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.35);
+      line-height: 1.6;
+      max-width: 280px;
+      margin-top: 8px;
+    }
+
+    .footer-col h4 {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 14px;
+    }
+    .footer-col a {
+      display: block;
+      font-size: 0.84rem;
+      color: rgba(255,255,255,0.6);
+      text-decoration: none;
+      margin-bottom: 8px;
+      transition: color 0.2s;
+    }
+    .footer-col a:hover { color: var(--white); }
+
+    .footer-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.3);
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────────── */
+    @media (max-width: 960px) {
+      #home { grid-template-columns: 1fr; min-height: auto; }
+      .hero-right { display: none; }
+      .hero-left { padding: 6rem 6% 5rem; }
+      .about-grid,
+      .how-intro,
+      .pillars-header,
+      .contact-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .steps { grid-template-columns: 1fr; }
+      .step-card { border-right: none; border-bottom: 1px solid var(--border); padding: 36px 0; }
+      .step-card:not(:first-child) { padding-left: 0; }
+      .pillars-grid { grid-template-columns: 1fr; }
+      .pillar { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .footer-top { grid-template-columns: 1fr; gap: 2rem; }
+    }
+
+    @media (max-width: 640px) {
+      .nav-links { display: none; }
+      .nav-links.open {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 68px; left: 0; right: 0;
+        background: var(--ink);
+        padding: 1rem 5% 1.5rem;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+        gap: 1.1rem;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+      }
+      .hamburger { display: flex; }
+      .form-row { grid-template-columns: 1fr; }
+      .contact-form-wrap { padding: 28px 20px; }
+      section { padding: 64px 5%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVIGATION ──────────────────────────────────────────── -->
+<nav id="navbar">
+  <a href="#home" class="nav-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer circle (globe boundary) -->
+        <circle cx="19" cy="19" r="17.5" stroke="#14a8ad" stroke-width="1.5"/>
+        <!-- Constellation connector lines -->
+        <line x1="19" y1="7"  x2="29" y2="14" stroke="#14a8ad" stroke-width="0.9" opacity="0.6"/>
+        <line x1="29" y1="14" x2="26" y2="26" stroke="#14a8ad" stroke-width="0.9" opacity="0.6"/>
+        <line x1="26" y1="26" x2="13" y2="27" stroke="#14a8ad" stroke-width="0.9" opacity="0.6"/>
+        <line x1="13" y1="27" x2="9"  y2="15" stroke="#14a8ad" stroke-width="0.9" opacity="0.6"/>
+        <line x1="9"  y1="15" x2="19" y2="7"  stroke="#14a8ad" stroke-width="0.9" opacity="0.6"/>
+        <line x1="19" y1="7"  x2="26" y2="26" stroke="#14a8ad" stroke-width="0.7" opacity="0.3"/>
+        <line x1="29" y1="14" x2="13" y2="27" stroke="#14a8ad" stroke-width="0.7" opacity="0.3"/>
+        <line x1="9"  y1="15" x2="26" y2="26" stroke="#14a8ad" stroke-width="0.7" opacity="0.3"/>
+        <!-- Dots — varying sizes for depth -->
+        <circle cx="19" cy="7"  r="2.2" fill="#14a8ad"/>
+        <circle cx="29" cy="14" r="1.6" fill="#D4A853"/>
+        <circle cx="26" cy="26" r="2.0" fill="#14a8ad" opacity="0.85"/>
+        <circle cx="13" cy="27" r="1.4" fill="#E8644A"/>
+        <circle cx="9"  cy="15" r="1.8" fill="#14a8ad" opacity="0.7"/>
+      </svg>
+    </div>
+    <div class="logo-wordmark">ISWS
+      <span>International School Wellness Survey</span>
+    </div>
+  </a>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#about">About</a></li>
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#experts">Our Experts</a></li>
+    <li><a href="#contact" class="nav-cta">Get in Touch</a></li>
+  </ul>
+  <button class="hamburger" id="hamburger" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<!-- ── HERO ────────────────────────────────────────────────── -->
+<section id="home">
+
+  <!-- Left: Text -->
+  <div class="hero-left">
+    <div class="hero-eyebrow">Measuring health, wellness &amp; belonging in international schools worldwide</div>
+    <h1>Measuring What<br><em>Matters</em> in<br>International<br>Schools</h1>
+    <p>International schools face challenges no standard wellness tool was built for — frequent transitions, cultural dislocation, and the complex identity of globally mobile youth. ISWS was designed from the ground up to meet that reality.</p>
+    <div class="hero-btns">
+      <a href="#contact" class="btn-primary">Get in Touch</a>
+      <a href="#about" class="btn-ghost">Learn More</a>
+    </div>
+    <div class="hero-divider"></div>
+    <div class="hero-stats">
+      <div>
+        <div class="stat-number">3</div>
+        <div class="stat-label">Core Dimensions</div>
+      </div>
+      <div>
+        <div class="stat-number">Global</div>
+        <div class="stat-label">Reach</div>
+      </div>
+      <div>
+        <div class="stat-number">Expert</div>
+        <div class="stat-label">Designed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: COBE Interactive Globe -->
+  <div class="hero-right">
+    <canvas id="globe-canvas" aria-hidden="true"></canvas>
+  </div>
+
+</section>
+
+<!-- ── ABOUT ──────────────────────────────────────────────── -->
+<section id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div>
+        <div class="eyebrow">Our Story</div>
+        <h2 class="section-title">Built by the community,<br>for the <em>community</em></h2>
+        <div class="about-body">
+          <p>The International School Wellness Survey was created by a team of educators, counselors, researchers, and administrators who understand the unique world of international schooling — from the challenges of frequent transitions to the experience of navigating cultural differences within the school community itself.</p>
+          <p>Our survey is grounded in rigorous research and adapted specifically for the international school context. It goes beyond typical wellness assessments to capture what truly matters for students — whether they are internationally mobile or local students immersed in a school culture shaped by backgrounds different from their own.</p>
+          <p>We believe every student deserves to be seen, heard, and supported.</p>
+          <div class="about-pills">
+            <span class="pill">Community-developed</span>
+            <span class="pill">Research-backed</span>
+            <span class="pill">Internationally validated</span>
+            <span class="pill">Culturally responsive</span>
+            <span class="pill">Actionable insights</span>
+          </div>
+        </div>
+      </div>
+      <div class="about-right">
+        <div class="about-stat-block">
+          <div class="about-stat-num">Global</div>
+          <div class="about-stat-label">Designed for international & American schools worldwide</div>
+        </div>
+        <div class="about-stat-block">
+          <div class="about-stat-num">Expert</div>
+          <div class="about-stat-label">Built by leading voices from the field</div>
+        </div>
+        <div class="about-stat-block">
+          <div class="about-stat-num">3</div>
+          <div class="about-stat-label">Evidence-based dimensions: health, wellness & belonging</div>
+        </div>
+        <div class="about-stat-block">
+          <div class="about-stat-num">ICK</div>
+          <div class="about-stat-label">Designed for intercultural kids — mobile and local alike</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── EXPERT TEAM ─────────────────────────────────────────── -->
+<section id="experts">
+  <div class="container">
+    <div class="experts-header">
+      <div>
+        <div class="eyebrow">Our Expert Team</div>
+        <h2 class="section-title">Designed &amp; reviewed by leading voices<br>in <em>international education</em></h2>
+      </div>
+      <div class="experts-header-right">
+        <p>ISWS brings together researchers, counselors, educators, and consultants with deep roots in the international school world — people who know this community because they live and breathe it.</p>
+      </div>
+    </div>
+    <div class="experts-grid">
+
+      <div class="expert-card">
+        <div class="expert-avatar">👤</div>
+        <div class="expert-name">Expert Name</div>
+        <div class="expert-title">Title / Role<br>Institution or Affiliation</div>
+      </div>
+
+      <div class="expert-card">
+        <div class="expert-avatar">👤</div>
+        <div class="expert-name">Expert Name</div>
+        <div class="expert-title">Title / Role<br>Institution or Affiliation</div>
+      </div>
+
+      <div class="expert-card">
+        <div class="expert-avatar">👤</div>
+        <div class="expert-name">Expert Name</div>
+        <div class="expert-title">Title / Role<br>Institution or Affiliation</div>
+      </div>
+
+      <div class="expert-card">
+        <div class="expert-avatar">👤</div>
+        <div class="expert-name">Expert Name</div>
+        <div class="expert-title">Title / Role<br>Institution or Affiliation</div>
+      </div>
+
+      <div class="expert-card">
+        <div class="expert-avatar">👤</div>
+        <div class="expert-name">Expert Name</div>
+        <div class="expert-title">Title / Role<br>Institution or Affiliation</div>
+      </div>
+
+      <div class="expert-card">
+        <div class="expert-avatar">👤</div>
+        <div class="expert-name">Expert Name</div>
+        <div class="expert-title">Title / Role<br>Institution or Affiliation</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── WHAT WE MEASURE ────────────────────────────────────── -->
+<section id="pillars">
+  <div class="container">
+    <div class="pillars-header">
+      <div>
+        <div class="eyebrow">What We Measure</div>
+        <h2 class="section-title">Three pillars of<br>student <em>wellbeing</em></h2>
+      </div>
+      <div>
+        <p class="section-lead">ISWS captures a holistic picture of student experience across three evidence-based dimensions, specifically adapted for internationally mobile students and intercultural kids navigating cultural differences within their school community.</p>
+      </div>
+    </div>
+    <div class="pillars-grid">
+      <div class="pillar" data-num="01">
+        <div class="pillar-accent"></div>
+        <div class="pillar-icon">🌿</div>
+        <h3>Health</h3>
+        <p>Physical and mental health indicators tailored for internationally mobile students — including sleep, nutrition, stress, and activity patterns across diverse cultural contexts.</p>
+      </div>
+      <div class="pillar" data-num="02">
+        <div class="pillar-accent"></div>
+        <div class="pillar-icon">✨</div>
+        <h3>Wellness</h3>
+        <p>Emotional wellbeing, academic engagement, resilience, and overall life satisfaction. We go beyond surface metrics to understand how students are truly thriving.</p>
+      </div>
+      <div class="pillar" data-num="03">
+        <div class="pillar-accent"></div>
+        <div class="pillar-icon">🤝</div>
+        <h3>Belonging</h3>
+        <p>Connectedness to school community, peer relationships, cultural identity, and inclusion — factors especially critical for intercultural kids and globally mobile youth.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────────── -->
+<section id="how">
+  <div class="container">
+    <div class="how-intro">
+      <div>
+        <div class="eyebrow">How It Works</div>
+        <h2 class="section-title">Simple, meaningful,<br><em>actionable</em></h2>
+      </div>
+      <div>
+        <p class="section-lead">From first conversation to school-wide insights — we make the process clear and straightforward for your team, wherever you are in the world.</p>
+      </div>
+    </div>
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <h3>Partner with Your School</h3>
+        <p>Reach out to discuss how ISWS fits your school's needs. We'll customize the rollout plan, set up your school's account, and guide your team through onboarding — at no burden to your staff.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <h3>Students Complete the Survey</h3>
+        <p>Students engage with a thoughtfully designed, age-appropriate survey that respects their time. Available in multiple languages and accessible across devices, anywhere in the world.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <h3>Receive Actionable Insights</h3>
+        <p>Your school receives clear, confidential reports highlighting key findings across health, wellness, and belonging — with practical guidance on where to focus support and resources.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CONTACT ────────────────────────────────────────────── -->
+<section id="contact">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="contact-left">
+        <div class="eyebrow">Get Started</div>
+        <h2 class="section-title">Ready to put student wellness at the <em>center</em>?</h2>
+        <p>Whether you're exploring options or ready to move forward, we'd love to connect. Fill out the form and a member of our team will be in touch to learn more about your school and how ISWS can help.</p>
+
+        <div class="contact-info-item">
+          <div class="ci-line"></div>
+          <div class="ci-content">
+            <strong>Email</strong>
+            <span>info@iswsurvey.org</span>
+          </div>
+        </div>
+        <div class="contact-info-item">
+          <div class="ci-line"></div>
+          <div class="ci-content">
+            <strong>Reach</strong>
+            <span>Serving international schools worldwide</span>
+          </div>
+        </div>
+        <div class="contact-info-item">
+          <div class="ci-line"></div>
+          <div class="ci-content">
+            <strong>Response time</strong>
+            <span>Within 1–2 business days</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-form-wrap">
+        <h3>Send us a message</h3>
+        <form id="contactForm" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="fname">First Name *</label>
+              <input type="text" id="fname" name="fname" placeholder="Jane" required />
+            </div>
+            <div class="form-group">
+              <label for="lname">Last Name *</label>
+              <input type="text" id="lname" name="lname" placeholder="Smith" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="email">Email Address *</label>
+            <input type="email" id="email" name="email" placeholder="jane@school.edu" required />
+          </div>
+          <div class="form-group">
+            <label for="school">School Name *</label>
+            <input type="text" id="school" name="school" placeholder="International School of..." required />
+          </div>
+          <div class="form-group">
+            <label for="role">Your Role</label>
+            <select id="role" name="role">
+              <option value="">Select your role...</option>
+              <option>Principal / Head of School</option>
+              <option>Counselor / Wellness Coordinator</option>
+              <option>Deputy / Assistant Principal</option>
+              <option>Teacher</option>
+              <option>Other Administrator</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" name="message" placeholder="Tell us a little about your school and what you're looking for..."></textarea>
+          </div>
+          <button type="submit" class="btn-submit">Send Message →</button>
+          <p class="form-note">Your information is kept confidential and never shared with third parties.</p>
+        </form>
+        <div class="form-success" id="formSuccess">
+          <div class="success-line"></div>
+          <h4>Message sent.</h4>
+          <p>Thank you for reaching out. A member of our team will be in touch within 1–2 business days.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="logo-wordmark">ISWS
+          <span>International School Wellness Survey</span>
+        </div>
+        <p class="footer-tagline">Measuring health, wellness & belonging in international schools worldwide. Built by the community, for the community.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Navigate</h4>
+        <a href="#about">About</a>
+        <a href="#experts">Our Experts</a>
+        <a href="#pillars">What We Measure</a>
+        <a href="#how">How It Works</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a href="#contact">Get in Touch</a>
+        <a href="mailto:info@iswsurvey.org">info@iswsurvey.org</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2025 International School Wellness Survey. All rights reserved.</span>
+      <span>Serving international schools around the world</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const hamburger = document.getElementById('hamburger');
+  const navLinks  = document.getElementById('navLinks');
+  hamburger.addEventListener('click', () => navLinks.classList.toggle('open'));
+  navLinks.querySelectorAll('a').forEach(l => l.addEventListener('click', () => navLinks.classList.remove('open')));
+
+  document.getElementById('contactForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    let valid = true;
+    this.querySelectorAll('[required]').forEach(f => {
+      if (!f.value.trim()) {
+        valid = false;
+        f.style.borderColor = '#e53e3e';
+        f.addEventListener('input', () => f.style.borderColor = '', { once: true });
+      }
+    });
+    if (!valid) return;
+    this.style.display = 'none';
+    document.getElementById('formSuccess').style.display = 'block';
+  });
+
+  window.addEventListener('scroll', () => {
+    document.getElementById('navbar').style.boxShadow = window.scrollY > 10
+      ? '0 2px 30px rgba(0,0,0,0.25)'
+      : 'none';
+  });
+</script>
+
+<script>
+(async () => {
+  const { default: createGlobe } = await import('https://cdn.jsdelivr.net/npm/cobe@0.6.3/+esm');
+
+  const canvas = document.getElementById('globe-canvas');
+  if (!canvas) return;
+
+  let phi = 0;
+  let width = 0;
+  let pointerInteracting = null;
+  let pointerInteractionMovement = 0;
+  let r = 0;
+
+  function onResize() {
+    width = canvas.offsetWidth;
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  const globe = createGlobe(canvas, {
+    devicePixelRatio: 2,
+    width: width * 2,
+    height: width * 2,
+    phi: 0,
+    theta: 0.3,
+    dark: 1,
+    diffuse: 0.5,
+    mapSamples: 16000,
+    mapBrightness: 1.4,
+    baseColor: [0.05, 0.45, 0.48],       /* ISWS teal #0D7377 */
+    markerColor: [0.91, 0.39, 0.29],      /* ISWS coral #E8644A */
+    glowColor: [0.08, 0.55, 0.60],        /* teal-mid #14a8ad */
+    markers: [
+      { location: [52.3676,   4.9041], size: 0.06 },  /* Amsterdam */
+      { location: [25.2048,  55.2708], size: 0.06 },  /* Dubai */
+      { location: [-1.2921,  36.8219], size: 0.06 },  /* Nairobi */
+      { location: [ 1.3521, 103.8198], size: 0.06 },  /* Singapore */
+      { location: [13.6929, -89.2182], size: 0.06 },  /* El Salvador */
+      { location: [23.1291, 113.2644], size: 0.06 },  /* Guangzhou */
+    ],
+    onRender(state) {
+      if (!pointerInteracting) phi += 0.004;
+      state.phi = phi + r;
+      state.width  = width * 2;
+      state.height = width * 2;
+    }
+  });
+
+  setTimeout(() => { canvas.style.opacity = '1'; });
+
+  canvas.addEventListener('pointerdown', (e) => {
+    pointerInteracting = e.clientX - pointerInteractionMovement;
+    canvas.style.cursor = 'grabbing';
+  });
+  canvas.addEventListener('pointerup',  () => { pointerInteracting = null; canvas.style.cursor = 'grab'; });
+  canvas.addEventListener('pointerout', () => { pointerInteracting = null; canvas.style.cursor = 'grab'; });
+  canvas.addEventListener('mousemove', (e) => {
+    if (pointerInteracting !== null) {
+      const delta = e.clientX - pointerInteracting;
+      pointerInteractionMovement = delta;
+      r = delta / 200;
+    }
+  });
+  canvas.addEventListener('touchmove', (e) => {
+    if (e.touches[0] && pointerInteracting !== null) {
+      const delta = e.touches[0].clientX - pointerInteracting;
+      pointerInteractionMovement = delta;
+      r = delta / 200;
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

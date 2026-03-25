@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dopamine Reward Animation</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; font-family: 'Arial', 'Helvetica Neue', sans-serif; }
+  .container { width: 1200px; height: 680px; background: #fff; position: relative; display: flex; flex-direction: column; align-items: center; padding: 20px 40px 30px; }
+  .charts { display: flex; gap: 0; width: 100%; flex: 1; }
+  .chart-panel { flex: 1; position: relative; display: flex; flex-direction: column; align-items: center; }
+  .chart-panel:first-child { border-right: 2px solid #ccc; padding-right: 20px; }
+  .chart-panel:last-child { padding-left: 20px; }
+  .chart-title { font-size: 28px; font-weight: 700; color: #333; margin-bottom: 16px; text-align: center; }
+  .chart-area { position: relative; width: 100%; flex: 1; }
+  canvas { position: absolute; top: 0; left: 0; }
+  .axis-label-y { position: absolute; top: 30px; left: 18px; font-size: 15px; font-weight: 600; color: #444; line-height: 1.3; }
+  .axis-label-x { position: absolute; bottom: 18px; right: 40px; font-size: 15px; font-weight: 600; color: #444; }
+  .subtitle { font-size: 20px; font-weight: 700; font-style: italic; color: #333; text-align: center; margin-top: 8px; opacity: 0; transition: opacity 0.8s; }
+  .subtitle.show { opacity: 1; }
+
+  /* Replay button */
+  #replayBtn {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    padding: 8px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
+    background: #2563eb; color: #fff; border: none; border-radius: 6px;
+    opacity: 0; transition: opacity 0.4s; pointer-events: none;
+  }
+  #replayBtn.show { opacity: 1; pointer-events: auto; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="charts">
+    <!-- LEFT: Predictable -->
+    <div class="chart-panel">
+      <div class="chart-title">Predictable Reward</div>
+      <div class="chart-area">
+        <div class="axis-label-y">Dopamine<br>Level</div>
+        <div class="axis-label-x">Time</div>
+        <canvas id="c1" width="540" height="420"></canvas>
+        <div class="subtitle" id="sub1">Consistent Peaks</div>
+      </div>
+    </div>
+    <!-- RIGHT: Random -->
+    <div class="chart-panel">
+      <div class="chart-title">Random Reward</div>
+      <div class="chart-area">
+        <div class="axis-label-y">Dopamine<br>Level</div>
+        <div class="axis-label-x">Time</div>
+        <canvas id="c2" width="540" height="420"></canvas>
+        <div class="subtitle" id="sub2"><i>Variable Spikes</i></div>
+      </div>
+    </div>
+  </div>
+  <button id="replayBtn">&#x21bb; Replay</button>
+</div>
+
+<script>
+/* ── Config ────────────────────────────────────────── */
+const LINE_COLOR = '#2563eb';
+const LINE_WIDTH = 3.2;
+const AXIS_COLOR = '#333';
+const ARROW_SIZE = 8;
+const DURATION_AXIS = 600;      // ms to draw axes
+const DURATION_LINE = 3200;     // ms to draw the wave
+const DELAY_BETWEEN = 400;      // pause between axes & line
+const DELAY_RIGHT = 800;        // delay before right chart starts
+
+/* ── Canvas setup ─────────────────────────────────── */
+function setup(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.width, h = canvas.height;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+  return { ctx, w, h };
+}
+
+/* ── Axis drawing ─────────────────────────────────── */
+function drawAxes(ctx, ox, oy, xLen, yLen, progress) {
+  ctx.strokeStyle = AXIS_COLOR;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+
+  // Y-axis (draws upward)
+  const yProg = Math.min(progress * 2, 1);
+  if (yProg > 0) {
+    const yEnd = oy - yLen * yProg;
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(ox, yEnd);
+    ctx.stroke();
+    if (yProg >= 1) {
+      // arrowhead
+      ctx.beginPath();
+      ctx.moveTo(ox, yEnd - 2);
+      ctx.lineTo(ox - ARROW_SIZE / 2, yEnd + ARROW_SIZE);
+      ctx.lineTo(ox + ARROW_SIZE / 2, yEnd + ARROW_SIZE);
+      ctx.closePath();
+      ctx.fillStyle = AXIS_COLOR;
+      ctx.fill();
+    }
+  }
+
+  // X-axis (draws rightward, starts at progress 0.5)
+  const xProg = Math.max(0, (progress - 0.5) * 2);
+  if (xProg > 0) {
+    const xEnd = ox + xLen * xProg;
+    ctx.beginPath();
+    ctx.moveTo(ox, oy);
+    ctx.lineTo(xEnd, oy);
+    ctx.stroke();
+    if (xProg >= 1) {
+      ctx.beginPath();
+      ctx.moveTo(xEnd + 2, oy);
+      ctx.lineTo(xEnd - ARROW_SIZE, oy - ARROW_SIZE / 2);
+      ctx.lineTo(xEnd - ARROW_SIZE, oy + ARROW_SIZE / 2);
+      ctx.closePath();
+      ctx.fillStyle = AXIS_COLOR;
+      ctx.fill();
+    }
+  }
+}
+
+/* ── Wave path generators ─────────────────────────── */
+// Predictable: smooth, consistent sine-like peaks
+function predictablePath(ox, oy, xLen, yLen) {
+  const pts = [];
+  const steps = 500;
+  const cycles = 5.5;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = ox + t * xLen * 0.92;
+    // Sine wave with consistent amplitude, slight baseline wobble
+    const wave = Math.sin(t * cycles * 2 * Math.PI);
+    const amp = yLen * 0.38;
+    // Envelope: ramp up then steady
+    const env = Math.min(1, t * 4);
+    // Keep wave above baseline (shift up), with small random wobble
+    const val = Math.max(0, wave) * amp * env;
+    const baseline = yLen * 0.05 * Math.sin(t * 12);
+    const y = oy - val - Math.abs(baseline) * env;
+    pts.push({ x, y });
+  }
+  return pts;
+}
+
+// Random: variable spikes, unpredictable heights
+function randomPath(ox, oy, xLen, yLen) {
+  const pts = [];
+  const steps = 500;
+  // Pre-define spike locations and heights for consistency
+  const spikes = [
+    { center: 0.08, height: 0.35, width: 0.04 },
+    { center: 0.16, height: 0.25, width: 0.03 },
+    { center: 0.23, height: 0.45, width: 0.035 },
+    { center: 0.32, height: 0.20, width: 0.025 },
+    { center: 0.38, height: 0.55, width: 0.04 },
+    { center: 0.45, height: 0.30, width: 0.03 },
+    { center: 0.52, height: 0.40, width: 0.035 },
+    { center: 0.58, height: 0.25, width: 0.03 },
+    { center: 0.65, height: 0.70, width: 0.04 },
+    { center: 0.72, height: 0.35, width: 0.03 },
+    { center: 0.78, height: 0.85, width: 0.045 },
+    { center: 0.85, height: 0.30, width: 0.03 },
+    { center: 0.92, height: 0.20, width: 0.025 },
+  ];
+
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const x = ox + t * xLen * 0.92;
+    let val = 0;
+    // Sum gaussian-like spikes
+    for (const s of spikes) {
+      const dist = (t - s.center) / s.width;
+      val += s.height * Math.exp(-dist * dist * 0.5);
+    }
+    // Small baseline noise
+    const noise = 0.03 * Math.sin(t * 30) + 0.02 * Math.sin(t * 47);
+    const env = Math.min(1, t * 5);
+    const y = oy - (val + Math.abs(noise)) * yLen * 0.45 * env;
+    pts.push({ x, y: Math.min(y, oy) });
+  }
+  return pts;
+}
+
+/* ── Animated line draw ───────────────────────────── */
+function drawLine(ctx, pts, progress, ox, oy) {
+  const n = Math.floor(progress * (pts.length - 1));
+  if (n < 1) return;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i <= n; i++) {
+    ctx.lineTo(pts[i].x, pts[i].y);
+  }
+  ctx.strokeStyle = LINE_COLOR;
+  ctx.lineWidth = LINE_WIDTH;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+/* ── Clipping mask so line doesn't overlap axes ───── */
+function clipArea(ctx, ox, oy, xLen, yLen) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(ox + 1, oy - yLen - 20, xLen + 20, yLen + 20);
+  ctx.clip();
+}
+
+/* ── Main animation ───────────────────────────────── */
+function run() {
+  const { ctx: ctx1, w: w1, h: h1 } = setup('c1');
+  const { ctx: ctx2, w: w2, h: h2 } = setup('c2');
+
+  // Origins & lengths
+  const ox1 = 75, oy1 = h1 - 70, xLen1 = w1 - 120, yLen1 = h1 - 140;
+  const ox2 = 75, oy2 = h2 - 70, xLen2 = w2 - 120, yLen2 = h2 - 140;
+
+  const pts1 = predictablePath(ox1, oy1, xLen1, yLen1);
+  const pts2 = randomPath(ox2, oy2, xLen2, yLen2);
+
+  document.getElementById('sub1').classList.remove('show');
+  document.getElementById('sub2').classList.remove('show');
+  document.getElementById('replayBtn').classList.remove('show');
+
+  const start = performance.now();
+
+  function frame(now) {
+    const elapsed = now - start;
+    ctx1.clearRect(0, 0, w1, h1);
+    ctx2.clearRect(0, 0, w2, h2);
+
+    /* ── LEFT chart ── */
+    const axProg1 = Math.min(1, elapsed / DURATION_AXIS);
+    drawAxes(ctx1, ox1, oy1, xLen1, yLen1, axProg1);
+
+    const lineStart1 = DURATION_AXIS + DELAY_BETWEEN;
+    if (elapsed > lineStart1) {
+      const lp1 = Math.min(1, (elapsed - lineStart1) / DURATION_LINE);
+      clipArea(ctx1, ox1, oy1, xLen1, yLen1);
+      drawLine(ctx1, pts1, lp1, ox1, oy1);
+      ctx1.restore();
+      if (lp1 >= 1) document.getElementById('sub1').classList.add('show');
+    }
+
+    /* ── RIGHT chart ── */
+    const rightStart = DELAY_RIGHT;
+    if (elapsed > rightStart) {
+      const re = elapsed - rightStart;
+      const axProg2 = Math.min(1, re / DURATION_AXIS);
+      drawAxes(ctx2, ox2, oy2, xLen2, yLen2, axProg2);
+
+      const lineStart2 = DURATION_AXIS + DELAY_BETWEEN;
+      if (re > lineStart2) {
+        const lp2 = Math.min(1, (re - lineStart2) / DURATION_LINE);
+        clipArea(ctx2, ox2, oy2, xLen2, yLen2);
+        drawLine(ctx2, pts2, lp2, ox2, oy2);
+        ctx2.restore();
+        if (lp2 >= 1) document.getElementById('sub2').classList.add('show');
+      }
+    }
+
+    const totalDuration = DELAY_RIGHT + DURATION_AXIS + DELAY_BETWEEN + DURATION_LINE + 600;
+    if (elapsed < totalDuration) {
+      requestAnimationFrame(frame);
+    } else {
+      document.getElementById('replayBtn').classList.add('show');
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('replayBtn').addEventListener('click', run);
+run();
+</script>
+</body>
+</html>

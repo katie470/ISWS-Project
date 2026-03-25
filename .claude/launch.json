@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "isws-site",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "/Users/katiegreeley/Desktop/Python Project", "-p", "8080", "--no-clipboard"],
+      "port": 8080
+    },
+    {
+      "name": "dashboard",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["serve.py"],
+      "port": 8765
+    },
+    {
+      "name": "isws-cover",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "/Users/katiegreeley/Desktop/Claude Workspace/isws-cover", "-p", "3000", "--no-clipboard"],
+      "port": 3000
+    },
+    {
+      "name": "partner-schools-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/katiegreeley/Desktop/Python Project/partner-schools-carousel"],
+      "port": 3000
+    },
+    {
+      "name": "expense-report",
+      "runtimeExecutable": "/Users/katiegreeley/Desktop/Python Project/expense_report_generator/.venv/bin/python",
+      "runtimeArgs": ["-m", "uvicorn", "app.main:app", "--reload", "--port", "8000", "--app-dir", "/Users/katiegreeley/Desktop/Python Project/expense_report_generator"],
+      "port": 8000
+    },
+    {
+      "name": "vaping-table",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "/Users/katiegreeley/Desktop", "-p", "8090", "--no-clipboard"],
+      "port": 8090
+    }
+  ]
+}

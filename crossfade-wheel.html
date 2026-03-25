@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CROSSFADE — Drug Interaction Wheel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0f;
+      --surface: #18181c;
+      --border: #2a2a32;
+      --text: #f0f0f5;
+      --muted: #888899;
+      --accent: #ff3c6e;
+      --font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    /* ── Header ──────────────────────────────── */
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      font-weight: 900;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, #ff3c6e, #ff8c42, #ffd700);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 1rem;
+      margin-top: 0.5rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    /* ── Wheels Container ─────────────────────── */
+    .wheels-row {
+      display: flex;
+      gap: 3rem;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 2.5rem;
+    }
+
+    .wheel-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .wheel-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .wheel-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+    }
+
+    .wheel-container canvas {
+      border-radius: 50%;
+      display: block;
+      filter: drop-shadow(0 0 20px rgba(255, 60, 110, 0.3));
+    }
+
+    /* Pointer triangle at top */
+    .pointer {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 20px solid #ffffff;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));
+      z-index: 10;
+    }
+
+    /* vs separator */
+    .vs {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--accent);
+      letter-spacing: -1px;
+      text-shadow: 0 0 20px rgba(255,60,110,0.6);
+      align-self: center;
+    }
+
+    /* ── Button ───────────────────────────────── */
+    .btn-crossfade {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      background: linear-gradient(135deg, #ff3c6e, #ff8c42);
+      color: #fff;
+      border: none;
+      border-radius: 60px;
+      padding: 1.1rem 3rem;
+      font-family: var(--font);
+      font-size: 1.3rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 4px 30px rgba(255, 60, 110, 0.5);
+      margin-bottom: 2.5rem;
+    }
+
+    .btn-crossfade:hover { transform: scale(1.05); box-shadow: 0 6px 40px rgba(255,60,110,0.7); }
+    .btn-crossfade:active { transform: scale(0.97); }
+    .btn-crossfade:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* spinning icon */
+    .btn-icon {
+      font-size: 1.4rem;
+      display: inline-block;
+    }
+    .spinning { animation: spin-icon 0.6s linear infinite; }
+    @keyframes spin-icon { to { transform: rotate(360deg); } }
+
+    /* ── Result Panel ─────────────────────────── */
+    #result-panel {
+      width: 100%;
+      max-width: 680px;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+      pointer-events: none;
+    }
+
+    #result-panel.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .combo-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .combo-pill {
+      padding: 0.5rem 1.2rem;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 0.04em;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      transition: border-color 0.3s;
+    }
+
+    .combo-plus {
+      font-size: 1.8rem;
+      font-weight: 900;
+      color: var(--accent);
+      animation: pulse-plus 0.6s ease-out;
+    }
+
+    @keyframes pulse-plus {
+      0%   { transform: scale(0); opacity: 0; }
+      60%  { transform: scale(1.3); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* Risk Card */
+    .risk-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.8rem;
+      animation: slide-up 0.4s ease-out 0.3s both;
+    }
+
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .risk-level {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 1rem;
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 1.2rem;
+    }
+
+    .risk-low      { background: rgba(34,197,94,0.15);  color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+    .risk-moderate { background: rgba(234,179,8,0.15);  color: #eab308; border: 1px solid rgba(234,179,8,0.3); }
+    .risk-high     { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
+    .risk-dangerous{ background: rgba(239,68,68,0.15);  color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+    .risk-card h2 {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 0.8rem;
+      line-height: 1.3;
+    }
+
+    .risk-card .summary {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: #d0d0da;
+      margin-bottom: 1.2rem;
+    }
+
+    .effects-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .effects-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: #c8c8d8;
+    }
+
+    .effects-list li::before {
+      content: '▸';
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .sos-bar {
+      margin-top: 1.4rem;
+      padding: 0.9rem 1.2rem;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 10px;
+      font-size: 0.9rem;
+      color: #fca5a5;
+      line-height: 1.55;
+    }
+
+    .sos-bar strong { color: #ef4444; }
+
+    /* ── Footer ──────────────────────────────── */
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.6;
+    }
+
+    /* ── Responsive ──────────────────────────── */
+    @media (max-width: 640px) {
+      .wheels-row { gap: 1.5rem; }
+      .vs { display: none; }
+      .wheel-container { width: 220px; height: 220px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>CROSSFADE</h1>
+    <p>Drug Interaction Wheel — Harm Reduction Education</p>
+  </header>
+
+  <div class="wheels-row">
+    <div class="wheel-wrap">
+      <span class="wheel-label">Substance 1</span>
+      <div class="wheel-container" id="wc1">
+        <div class="pointer"></div>
+        <canvas id="wheel1" width="280" height="280"></canvas>
+      </div>
+    </div>
+
+    <div class="vs">VS</div>
+
+    <div class="wheel-wrap">
+      <span class="wheel-label">Substance 2</span>
+      <div class="wheel-container" id="wc2">
+        <div class="pointer"></div>
+        <canvas id="wheel2" width="280" height="280"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-crossfade" id="spinBtn" onclick="spinWheels()">
+    <span class="btn-icon" id="btnIcon">🎲</span>
+    CROSSFADE
+  </button>
+
+  <div id="result-panel">
+    <div class="combo-header" id="comboHeader"></div>
+    <div class="risk-card" id="riskCard"></div>
+  </div>
+
+  <footer>
+    ⚠️ This tool is for <strong>harm reduction education only</strong>. It does not encourage drug use.
+    If you or someone you know needs help, call <strong>SAMHSA's helpline: 1-800-662-4357</strong> (free, confidential, 24/7).
+  </footer>
+
+<script>
+/* ═══════════════════════════════════════════
+   SUBSTANCES
+═══════════════════════════════════════════ */
+const SUBSTANCES = [
+  { name: "Alcohol",         emoji: "🍺", color: "#f59e0b" },
+  { name: "Cannabis",        emoji: "🌿", color: "#22c55e" },
+  { name: "Nicotine",        emoji: "🚬", color: "#94a3b8" },
+  { name: "Cocaine",         emoji: "🤍", color: "#e2e8f0" },
+  { name: "Benzos",          emoji: "💊", color: "#818cf8" },
+  { name: "MDMA",            emoji: "💎", color: "#ec4899" },
+  { name: "Opioids",         emoji: "🔴", color: "#ef4444" },
+  { name: "Amphetamines",    emoji: "⚡", color: "#facc15" },
+  { name: "Ketamine",        emoji: "🐴", color: "#67e8f9" },
+  { name: "Mushrooms",       emoji: "🍄", color: "#a78bfa" },
+];
+
+/* ═══════════════════════════════════════════
+   INTERACTION DATA
+   Key = sorted pair joined by "+"
+   e.g. "alcohol+cannabis" (alphabetical)
+═══════════════════════════════════════════ */
+const INTERACTIONS = {
+
+  "alcohol+cannabis": {
+    risk: "moderate",
+    title: "Alcohol + Cannabis — The Classic \"Crossfade\"",
+    summary: "When you mix alcohol and weed, your body absorbs THC (the active part of cannabis) much faster than usual. This can flip from feeling good to feeling really sick — very quickly.",
+    effects: [
+      "You can \"green out\" — feel dizzy, spin-y, and vomit suddenly",
+      "Your heart rate and blood pressure both go up",
+      "It's much harder to judge how intoxicated you actually are",
+      "Poor balance and coordination make falls and accidents more likely",
+      "Anxiety and paranoia can hit hard and feel overwhelming",
+    ],
+    sos: "If someone is greening out: put them on their side (recovery position), don't leave them alone, give water in small sips. If they're unresponsive, call 911.",
+  },
+
+  "alcohol+cocaine": {
+    risk: "high",
+    title: "Alcohol + Cocaine — The Cocaethylene Trap",
+    summary: "When alcohol and cocaine meet in your liver, your body creates a new chemical called cocaethylene. It hits your heart harder than either drug alone — and stays in your system much longer.",
+    effects: [
+      "Creates cocaethylene, a toxic chemical that stresses the heart",
+      "Heart attack risk goes up — even in young, healthy people",
+      "Cocaine hides how drunk you feel, so people drink way too much",
+      "Blood pressure spikes dangerously high",
+      "Liver damage builds up faster with repeated use",
+      "Sudden cardiac death is a real risk with this combo",
+    ],
+    sos: "Chest pain or irregular heartbeat after mixing these? Call 911 immediately. Don't wait to see if it passes.",
+  },
+
+  "alcohol+benzos": {
+    risk: "dangerous",
+    title: "Alcohol + Benzodiazepines — STOP Your Breathing",
+    summary: "Both alcohol and benzos (like Xanax, Valium, Klonopin) slow down your brain and nervous system. Together, they can slow your breathing down to nothing. This is one of the most common causes of overdose death.",
+    effects: [
+      "Breathing slows down — you can stop breathing entirely in your sleep",
+      "Extreme drowsiness and blackouts happen at lower doses than expected",
+      "You lose muscle control and can choke on vomit",
+      "Memory blackouts are far more likely than with either drug alone",
+      "Your coordination fails completely — driving is extremely dangerous",
+    ],
+    sos: "If someone is unresponsive or breathing very slowly: call 911 NOW. Put them in the recovery position. Stay on the line with the operator. This is a life-threatening emergency.",
+  },
+
+  "alcohol+opioids": {
+    risk: "dangerous",
+    title: "Alcohol + Opioids — The Deadliest Combo",
+    summary: "This is one of the most dangerous drug combinations that exists. Both alcohol and opioids (like heroin, Percocet, fentanyl, oxycodone) tell your brain to breathe less. Together, they can make you stop breathing completely while you're asleep.",
+    effects: [
+      "Breathing slows to dangerously low levels — can stop completely",
+      "You can fall asleep and never wake up (called respiratory depression)",
+      "Fentanyl makes this even more deadly — tiny amounts mixed with alcohol are fatal",
+      "Naloxone (Narcan) can reverse opioid overdose — carry it if you can",
+      "Even small amounts of alcohol significantly increase opioid overdose risk",
+    ],
+    sos: "Signs of overdose: blue lips, won't wake up, slow gurgling breathing. CALL 911. Use Narcan if available. Good Samaritan laws in most states protect you when you call for help.",
+  },
+
+  "alcohol+mdma": {
+    risk: "high",
+    title: "Alcohol + MDMA (Ecstasy/Molly) — Crash and Burn",
+    summary: "MDMA makes you feel energized so you don't notice how drunk you're getting. But your body is still being hit by both — and the after-crash hits much harder.",
+    effects: [
+      "Dangerous dehydration — MDMA already dehydrates you, alcohol makes it worse",
+      "Your liver works overtime trying to process both at the same time",
+      "Alcohol masks the MDMA effects, so people take more and accidentally overdose",
+      "The comedown (next-day crash) is much worse with alcohol",
+      "Overheating risk goes up significantly in hot environments or while dancing",
+      "Heart rate and blood pressure both spike",
+    ],
+    sos: "Watch for signs of overheating: not sweating despite being hot, confusion, stopping urinating. This is a medical emergency — move to a cool area and call 911.",
+  },
+
+  "alcohol+amphetamines": {
+    risk: "high",
+    title: "Alcohol + Amphetamines — Fooling Yourself",
+    summary: "Amphetamines (like Adderall, meth, speed) make you feel more awake and alert, which hides how drunk your body actually is. You drink more than you should — but the alcohol is still hitting your liver and brain just as hard.",
+    effects: [
+      "Stimulants hide the drunk feeling so you drink much more than intended",
+      "Your heart is pushed hard from two directions — stress and stimulation",
+      "Risk of alcohol poisoning goes up because you can't tell how drunk you are",
+      "Crash when the stimulant wears off is harder and more dangerous",
+      "Dehydration is amplified — both drugs dry out your body",
+      "Erratic heart rhythm is a real risk",
+    ],
+    sos: "If someone seems \"too out of it\" after mixing these, check their breathing and pulse. Alcohol poisoning can look like sleep — if you can't wake them, call 911.",
+  },
+
+  "alcohol+ketamine": {
+    risk: "high",
+    title: "Alcohol + Ketamine — Falling Into the K-Hole",
+    summary: "Both alcohol and ketamine are depressants — they both slow down your brain. Together, they make the sedative effects much stronger, and the \"k-hole\" (a state of deep dissociation) can happen at lower doses than expected.",
+    effects: [
+      "Deeper, more disorienting dissociation (losing touch with reality)",
+      "Sedation is greatly increased — you can become completely unresponsive",
+      "Breathing slows down with both combined",
+      "Risk of falling, injury, or not being aware of surroundings",
+      "Memory loss is more severe",
+      "Nausea and vomiting are common — dangerous if you're not conscious",
+    ],
+    sos: "If someone is in a k-hole AND has been drinking, stay with them, put them in the recovery position, and monitor breathing. Call 911 if they won't respond to their name.",
+  },
+
+  "alcohol+mushrooms": {
+    risk: "moderate",
+    title: "Alcohol + Mushrooms (Psilocybin) — Rough Ride",
+    summary: "Alcohol is a depressant while mushrooms are a psychedelic. They work against each other in strange ways — and the combination is known for making people feel sick, anxious, and confused more than either alone.",
+    effects: [
+      "Nausea and vomiting are much more likely",
+      "Alcohol can increase anxiety and make a bad trip more likely",
+      "Confusion and disorientation are amplified",
+      "Your ability to recognize danger goes down significantly",
+      "Dehydration happens faster",
+      "The experience becomes harder to manage and less predictable",
+    ],
+    sos: "For a bad trip: calm, quiet environment, trusted person nearby. If someone seems to panic and becomes a danger to themselves, call 911 for a welfare check.",
+  },
+
+  "alcohol+nicotine": {
+    risk: "low",
+    title: "Alcohol + Nicotine — The Common Pair",
+    summary: "Most people don't think of this as a dangerous mix, but alcohol and nicotine together actually reinforce each other — making you want more of both. Over time, this is one of the most damaging combinations for your heart and lungs.",
+    effects: [
+      "Nicotine makes alcohol feel more rewarding, so you drink more",
+      "Alcohol makes cigarettes feel more satisfying, so you smoke more",
+      "Both raise blood pressure and stress the heart at the same time",
+      "Long-term use together dramatically raises risk of cancer and heart disease",
+      "Both are highly addictive — combined, the addiction is harder to quit",
+    ],
+    sos: "This combination is less immediately dangerous but very harmful over time. If you want to quit, resources like 1-800-QUIT-NOW (nicotine) and SAMHSA (alcohol) offer free help.",
+  },
+
+  "cannabis+cocaine": {
+    risk: "high",
+    title: "Cannabis + Cocaine — Anxiety Overload",
+    summary: "Cannabis slows you down while cocaine speeds you up. Your heart doesn't know what to do — it races, then slows, in an unpredictable cycle. This is really stressful on the cardiovascular system.",
+    effects: [
+      "Heart rate spikes unpredictably and can become irregular",
+      "Panic attacks and severe anxiety are very common with this mix",
+      "Blood pressure swings wildly up and down",
+      "Paranoia is strongly amplified",
+      "Your perception of time gets very distorted",
+      "Both drugs crash together, making the comedown worse",
+    ],
+    sos: "Chest pain, heart pounding irregularly, or feeling like you might pass out: call 911. Heart attacks can happen in young people with this combo.",
+  },
+
+  "cannabis+benzos": {
+    risk: "moderate",
+    title: "Cannabis + Benzodiazepines — Extra Sedation",
+    summary: "Both of these drugs slow your brain down. Together, the sedation is stronger than either one alone. Most people don't overdose, but they can become extremely unresponsive.",
+    effects: [
+      "Heavy, unexpected sedation — can't stay awake or function",
+      "Breathing can slow down if large amounts of either drug are used",
+      "Memory and coordination fail together",
+      "Very unpredictable effects — some people pass out completely",
+      "Risk of falling asleep in unsafe positions",
+    ],
+    sos: "If someone won't wake up or is breathing very slowly, call 911. This is especially dangerous when alcohol is added to the mix.",
+  },
+
+  "cannabis+mdma": {
+    risk: "moderate",
+    title: "Cannabis + MDMA — Anxiety Spiral Risk",
+    summary: "MDMA already puts your brain in an intense state. Cannabis can amplify this dramatically — especially anxiety and paranoia. For some people, this is a bad time that feels scary and overwhelming.",
+    effects: [
+      "Paranoia and anxiety can become very intense and hard to control",
+      "Heart rate goes up with both drugs — creates more physical anxiety",
+      "Overheating risk increases when dancing or in warm environments",
+      "Some people experience panic attacks",
+      "Comedown from MDMA feels worse with cannabis the next day",
+      "Psychedelic-like experiences can happen unexpectedly",
+    ],
+    sos: "For a bad trip or panic attack: get to a quiet, cool, safe space. Ground yourself — name 5 things you can see, 4 you can touch. Have a trusted sober person with you.",
+  },
+
+  "cannabis+opioids": {
+    risk: "moderate",
+    title: "Cannabis + Opioids — Breathing Concern",
+    summary: "There's actually research showing cannabis can help some people reduce opioid use. But combined in higher doses, both slow your breathing and your alertness — which can become risky.",
+    effects: [
+      "Both drugs together reduce breathing more than opioids alone",
+      "Sedation is deeper — you can be very hard to wake up",
+      "Nausea is common, dangerous if you're sedated and vomit",
+      "Judgment and coordination are significantly impaired",
+      "Can mask opioid overdose symptoms, delaying help",
+    ],
+    sos: "If someone has used opioids and won't wake up, assume overdose. Use Narcan (naloxone) if available and call 911. Cannabis does NOT cancel out an opioid overdose.",
+  },
+
+  "cannabis+amphetamines": {
+    risk: "moderate",
+    title: "Cannabis + Amphetamines — Speed vs. Chill",
+    summary: "Amphetamines rev you up while cannabis tries to mellow you out. The competing signals can cause serious anxiety and an irregular heartbeat. The effects are unpredictable.",
+    effects: [
+      "Heart races and blood pressure spikes — the drugs fight each other",
+      "Anxiety and paranoia are very common",
+      "Sleep becomes very difficult — stimulant keeps you awake, cannabis makes you foggy",
+      "Appetite and appetite suppression cancel each other out unpredictably",
+      "Confusion and difficulty thinking clearly",
+    ],
+    sos: "Chest pain or heart beating irregularly after mixing these? Call 911 — don't tough it out.",
+  },
+
+  "cannabis+ketamine": {
+    risk: "moderate",
+    title: "Cannabis + Ketamine — Reality Check",
+    summary: "Both cannabis and ketamine can cause disorientation and alter how you perceive reality. Together, this becomes much more intense and harder to manage. The k-hole can be deeper and more frightening.",
+    effects: [
+      "Much deeper dissociation — you may feel completely disconnected from reality",
+      "Very hard to call for help if something goes wrong",
+      "Nausea and vomiting become more likely",
+      "Breathing slows down more than with ketamine alone",
+      "Anxiety and panic are common if the experience becomes overwhelming",
+    ],
+    sos: "Never use ketamine alone. If someone goes into a deep k-hole, stay with them, put them in recovery position, and monitor breathing. Call 911 if they become unresponsive.",
+  },
+
+  "cannabis+mushrooms": {
+    risk: "moderate",
+    title: "Cannabis + Mushrooms — The Intensity Multiplier",
+    summary: "Cannabis is known to significantly amplify the psychedelic effects of mushrooms. A normal dose can suddenly feel overwhelming. This is called \"potentiation\" — one drug makes the other stronger.",
+    effects: [
+      "Mushroom trip becomes much more intense and harder to control",
+      "Risk of a difficult or scary trip (bad trip) goes up",
+      "Anxiety, confusion, and paranoia are common",
+      "Visual and sensory effects are amplified",
+      "Time distortion becomes very extreme",
+      "Recovery takes longer after the experience",
+    ],
+    sos: "For overwhelming experiences: safe space, trusted person, no more drugs. Remind yourself: it will end, you are safe. If someone becomes a danger to themselves, call 911.",
+  },
+
+  "cannabis+nicotine": {
+    risk: "low",
+    title: "Cannabis + Nicotine — The Spliff Effect",
+    summary: "Many people mix these in joints or blunts. Nicotine is highly addictive, and mixing it with cannabis means people often accidentally become dependent on nicotine without realizing it.",
+    effects: [
+      "Nicotine addiction can develop quickly — even from \"just\" smoking mixed joints",
+      "Heart rate goes up with both drugs combined",
+      "Lung health suffers from any kind of smoke inhalation",
+      "Nicotine withdrawal becomes part of cannabis use, making quitting harder",
+      "Cognitive effects of cannabis are sometimes dulled by nicotine",
+    ],
+    sos: "If you want to quit nicotine: 1-800-QUIT-NOW or quitnow.gov offers free, confidential support.",
+  },
+
+  "cocaine+benzos": {
+    risk: "high",
+    title: "Cocaine + Benzodiazepines — Hiding the Danger",
+    summary: "People sometimes use benzos to \"come down\" from cocaine. The problem: benzos hide the dangerous signals your body sends — chest pain, rapid heart rate — telling you something is wrong.",
+    effects: [
+      "Benzos mask warning signs of cocaine overdose (chest pain, heart racing)",
+      "When the benzo wears off, the cocaine stimulant effect rebounds hard",
+      "Breathing can be suppressed by benzos while cocaine stresses the heart",
+      "Addiction to both develops faster when used together",
+      "Cognitive impairment is compounded — very poor decision-making",
+    ],
+    sos: "If someone who used cocaine and benzos has chest pain or collapses, call 911 immediately. Don't assume the benzo is just making them sleepy.",
+  },
+
+  "cocaine+mdma": {
+    risk: "dangerous",
+    title: "Cocaine + MDMA — Heart Under Attack",
+    summary: "Both cocaine and MDMA are stimulants that push your heart to work harder. Together, they push it to dangerous extremes — dramatically increasing the risk of heart attack and overheating, even in young people.",
+    effects: [
+      "Heart rate and blood pressure reach dangerously high levels",
+      "Risk of heart attack is seriously elevated — even for young, healthy people",
+      "Overheating (hyperthermia) can become fatal, especially when dancing",
+      "Serotonin levels spike from MDMA while cocaine also affects dopamine — unpredictable",
+      "Both drugs dehydrate you — combined dehydration is extreme",
+      "Comedown is severely harsh with depression and exhaustion",
+    ],
+    sos: "Chest pain, confusion, extremely high body temperature after this combination: call 911 immediately. Don't let someone walk it off.",
+  },
+
+  "cocaine+opioids": {
+    risk: "dangerous",
+    title: "Cocaine + Opioids — The Speedball",
+    summary: "This is called a \"speedball\" — and it's famous for killing people. Cocaine speeds up your heart and breathing, opioids slow them down. When the cocaine wears off first, the opioids can suddenly stop your breathing.",
+    effects: [
+      "When cocaine wears off and opioids take over, breathing can stop suddenly",
+      "This combo killed John Belushi, Chris Farley, and many others",
+      "The stimulant/depressant battle puts extreme stress on the heart",
+      "Overdose risk is extremely high — higher than either drug alone",
+      "Naloxone (Narcan) can help with the opioid side — carry it",
+    ],
+    sos: "This is a true medical emergency. If someone collapses after a speedball: call 911, use Narcan if available, start CPR if they stop breathing. Do not leave them.",
+  },
+
+  "cocaine+amphetamines": {
+    risk: "high",
+    title: "Cocaine + Amphetamines — Double Stimulant Overload",
+    summary: "Mixing two stimulants doesn't just double the effect — it multiplies the risk. Your cardiovascular system is pushed to its limit, and the risk of heart attack, stroke, or psychosis goes up dramatically.",
+    effects: [
+      "Extreme heart rate — can exceed 200 beats per minute",
+      "Blood pressure spikes to dangerous, stroke-level highs",
+      "Stimulant psychosis (paranoia, hallucinations) is much more likely",
+      "Overheating risk is very high",
+      "Comedown is extreme — severe depression and exhaustion",
+      "High potential for cardiovascular emergency",
+    ],
+    sos: "Extreme agitation, chest pain, confusion, or seizures after mixing these: call 911. Time matters with cardiovascular events.",
+  },
+
+  "cocaine+ketamine": {
+    risk: "high",
+    title: "Cocaine + Ketamine — Up and Down at Once",
+    summary: "Cocaine stimulates while ketamine dissociates. Your body is stressed in opposite directions, which is very disorienting and hard on the heart. The combination raises seizure risk.",
+    effects: [
+      "Heart is stressed by the stimulant while ketamine adds dissociative confusion",
+      "Seizure risk goes up",
+      "Paranoia and psychological distress are common",
+      "Blood pressure swings unpredictably",
+      "Confusion makes it very hard to recognize you need help",
+    ],
+    sos: "Seizure happening? Protect the person's head, don't hold them down, time the seizure. If it lasts more than 5 minutes or they don't regain consciousness, call 911.",
+  },
+
+  "cocaine+mushrooms": {
+    risk: "high",
+    title: "Cocaine + Mushrooms — Paranoia Storm",
+    summary: "Cocaine and mushrooms both affect serotonin in your brain. Together, this can create extreme paranoia, anxiety, and psychological distress. The stimulant effect of cocaine can make a psychedelic experience spiral out of control.",
+    effects: [
+      "Severe paranoia and anxiety — significantly higher risk of a bad trip",
+      "Heart rate and blood pressure spike while psychedelic effects intensify",
+      "Psychological distress can become very difficult to manage",
+      "The comedown from both together is exhausting and emotionally difficult",
+      "Risk of panic and making poor decisions is very high",
+    ],
+    sos: "For severe paranoia or panic: calm environment, no more stimulants, grounding techniques. Call 911 if someone becomes a danger to themselves or others.",
+  },
+
+  "cocaine+nicotine": {
+    risk: "moderate",
+    title: "Cocaine + Nicotine — Extra Heart Strain",
+    summary: "Both cocaine and nicotine stimulate the heart. Nicotine may seem mild by comparison, but it adds meaningful extra stress on an already overworked cardiovascular system.",
+    effects: [
+      "Additive heart rate and blood pressure increase",
+      "Nicotine increases the craving for cocaine and vice versa",
+      "Cardiovascular strain builds up even if neither drug is taken in huge amounts",
+      "Both highly addictive — using together reinforces addiction patterns",
+    ],
+    sos: "Chest pain or heart pounding? Stop both, rest, and call 911 if symptoms don't improve in a few minutes.",
+  },
+
+  "benzos+mdma": {
+    risk: "moderate",
+    title: "Benzodiazepines + MDMA — Blunted and Risky",
+    summary: "People sometimes take benzos after MDMA to ease the comedown. But benzos can make it hard to notice if MDMA is causing dangerous overheating or an overdose because you're too sedated to respond.",
+    effects: [
+      "Benzos blunt the MDMA high, leading people to take more MDMA — overdose risk",
+      "Overheating symptoms become harder to notice and respond to",
+      "Severe sedation when MDMA wears off",
+      "Memory loss is amplified significantly",
+      "Respiratory depression if both are taken in high doses",
+    ],
+    sos: "If someone who took MDMA is also taking benzos and becomes unresponsive, call 911. Monitor body temperature — overheating is a serious risk.",
+  },
+
+  "benzos+opioids": {
+    risk: "dangerous",
+    title: "Benzodiazepines + Opioids — Breathing Emergency",
+    summary: "This combination is responsible for a massive number of overdose deaths. Both drugs tell your brain to slow down breathing. Together, even moderate doses can cause breathing to stop completely.",
+    effects: [
+      "Breathing slows dramatically — can stop entirely",
+      "This combo is involved in the majority of prescription overdose deaths",
+      "You can fall asleep and stop breathing — no warning signs",
+      "Naloxone (Narcan) helps with the opioid side but doesn't affect benzos",
+      "Even therapeutic doses of both prescribed together carry serious risk",
+    ],
+    sos: "Blue lips, won't wake up, slow or absent breathing = overdose. Call 911 NOW. Give Narcan if available. Start rescue breathing. Stay on the line with 911.",
+  },
+
+  "benzos+amphetamines": {
+    risk: "moderate",
+    title: "Benzodiazepines + Amphetamines — Push and Pull",
+    summary: "Using stimulants and depressants together is sometimes called \"speedballing\" in a broader sense. The drugs cancel each other out partially — but the stress on your body doesn't cancel, it adds up.",
+    effects: [
+      "Cardiovascular stress is compounded even as the effects seem balanced",
+      "People take more of both to feel something — rapidly escalating doses",
+      "Benzo masks the stimulant crash, hiding how depleted your body is",
+      "Sleep and cognitive function suffer significantly",
+      "High addiction potential for both substances accelerates",
+    ],
+    sos: "Extreme fatigue, confusion, or chest pain after mixing these: rest in a safe place and seek medical help if symptoms worsen.",
+  },
+
+  "benzos+ketamine": {
+    risk: "high",
+    title: "Benzodiazepines + Ketamine — Deep Sedation",
+    summary: "Both benzos and ketamine cause sedation and dissociation. Together, they push you into a much deeper altered state — where you may be unable to protect your own airway if you vomit.",
+    effects: [
+      "Very deep sedation — you may be impossible to wake",
+      "Breathing slows significantly",
+      "Aspiration risk (choking on vomit) is very serious",
+      "Memory loss is complete",
+      "Cardiovascular function can become unstable",
+    ],
+    sos: "Anyone unresponsive after this combination should be put in the recovery position immediately. Call 911 and monitor breathing.",
+  },
+
+  "benzos+mushrooms": {
+    risk: "low",
+    title: "Benzodiazepines + Mushrooms — Trip Dampener",
+    summary: "Benzos are actually sometimes used to stop a bad mushroom trip (called \"trip killing\"). While they reduce the psychedelic effects, the sedation can create problems — especially if someone is already scared.",
+    effects: [
+      "Benzos significantly reduce or stop the mushroom trip effects",
+      "Heavy sedation can leave someone unable to communicate",
+      "Aspiration risk if sedated and nauseous from mushrooms",
+      "May not fully prevent a bad trip — just make it more confusing",
+    ],
+    sos: "Using benzos to stop a bad trip? Low dose only, in a safe environment, with someone sober present.",
+  },
+
+  "benzos+nicotine": {
+    risk: "low",
+    title: "Benzodiazepines + Nicotine — Low Acute Risk",
+    summary: "These two don't interact in a dramatically dangerous way in the short term. Nicotine is a stimulant and benzos are a depressant. Long-term, both are highly addictive.",
+    effects: [
+      "Nicotine may slightly reduce the calming effect of benzos",
+      "Both are strongly addictive — using together reinforces dependence",
+      "Long-term combined use is harmful to cardiovascular and mental health",
+    ],
+  },
+
+  "mdma+opioids": {
+    risk: "high",
+    title: "MDMA + Opioids — Serotonin and Suppression",
+    summary: "MDMA floods your brain with serotonin while opioids slow everything down. Together, the sedation from opioids can become unexpectedly dangerous, and there's risk of serotonin syndrome.",
+    effects: [
+      "Risk of serotonin syndrome — a dangerous overload of serotonin in your brain",
+      "Breathing can slow from opioids even while MDMA feels stimulating",
+      "Heart rate and cardiovascular strain are elevated",
+      "Overheating risk combined with sedation makes this unpredictable",
+      "Nausea and vomiting are very common",
+    ],
+    sos: "Signs of serotonin syndrome: rapid heart rate, high fever, muscle twitching, agitation. This is a medical emergency — call 911.",
+  },
+
+  "mdma+amphetamines": {
+    risk: "high",
+    title: "MDMA + Amphetamines — Serotonin Overload",
+    summary: "Both MDMA and amphetamines affect serotonin and dopamine. Together, they can cause serotonin syndrome — where your brain has too much serotonin and your body goes haywire. This can be life-threatening.",
+    effects: [
+      "Serotonin syndrome risk is very real — can cause seizures and death",
+      "Extreme overheating (hyperthermia) — especially when dancing",
+      "Heart works at dangerous speeds for hours",
+      "Comedown causes severe depression and exhaustion",
+      "The MDMA comedown is much worse with amphetamines also in your system",
+    ],
+    sos: "Serotonin syndrome: agitation, high fever, rapid heartbeat, muscle twitching. Call 911 — this is a medical emergency.",
+  },
+
+  "mdma+ketamine": {
+    risk: "high",
+    title: "MDMA + Ketamine — Confusion and Cardiac Risk",
+    summary: "MDMA is a stimulant-psychedelic while ketamine is a dissociative. Together, they create a very unpredictable mental state — and MDMA's cardiac stress combined with ketamine's dissociation can make it impossible to recognize danger.",
+    effects: [
+      "Deep dissociation means you can't recognize if your heart is struggling",
+      "Body temperature can spike dangerously while you feel detached from your body",
+      "MDMA and ketamine both cause nausea — vomiting while dissociated is dangerous",
+      "K-hole with MDMA can cause profound confusion and panic",
+      "Overheating in a club environment becomes very hard to prevent",
+    ],
+    sos: "If someone seems unaware of their body, can't communicate clearly, or is extremely hot to the touch — cool them down and call 911.",
+  },
+
+  "mdma+mushrooms": {
+    risk: "high",
+    title: "MDMA + Mushrooms — \"Candy Flip\"",
+    summary: "Called a \"candy flip,\" this combo intensifies both experiences dramatically. It can be overwhelming even for experienced users. The cardiovascular stress from MDMA combined with the intensity of mushrooms is a serious combination.",
+    effects: [
+      "Both experiences amplify each other — can become very intense and scary",
+      "Heart rate and blood pressure are elevated throughout",
+      "Overheating risk — MDMA overheating continues even as mushrooms intensify",
+      "Duration is very long — many hours of intense effects",
+      "Emotional overwhelm and psychological distress are common",
+      "Serotonin effects from both combined elevate serotonin syndrome risk",
+    ],
+    sos: "If someone has an overwhelming experience: safe quiet space, trusted sober person, cool environment. Call 911 for high body temperature or unresponsiveness.",
+  },
+
+  "mdma+nicotine": {
+    risk: "low",
+    title: "MDMA + Nicotine — Extra Stimulation",
+    summary: "People often smoke heavily while on MDMA. The nicotine adds extra stimulation to an already stimulated system — not catastrophically dangerous in the moment, but hard on the heart.",
+    effects: [
+      "Additive stimulant effect on the heart and blood pressure",
+      "Nicotine cravings are intensified while on MDMA — people smoke far more than usual",
+      "Dehydration worsens with both",
+      "Long-term combined use is harmful to cardiovascular health",
+    ],
+  },
+
+  "opioids+amphetamines": {
+    risk: "dangerous",
+    title: "Opioids + Amphetamines — Competing Forces",
+    summary: "This is a version of the \"speedball\" combination. Amphetamines push your heart up, opioids push everything down. When the amphetamine wears off, the opioids can suddenly dominate — stopping your breathing.",
+    effects: [
+      "When stimulant wears off, opioid depressant effect hits suddenly and hard",
+      "Unexpected respiratory depression (breathing stops) is a real risk",
+      "Heart is under severe competing stress the entire time",
+      "Masks the \"too high\" feeling from opioids — easy to take a fatal dose",
+      "Overdose risk is compounded significantly",
+    ],
+    sos: "Use Narcan if available, call 911. This combination can cause sudden cardiac events or stop breathing without warning.",
+  },
+
+  "opioids+ketamine": {
+    risk: "dangerous",
+    title: "Opioids + Ketamine — Breathing Shutdown",
+    summary: "Both opioids and ketamine are powerful depressants. Together, they suppress your breathing far more than either alone. The dissociation from ketamine means you won't recognize you're in danger.",
+    effects: [
+      "Severe respiratory depression — breathing can stop",
+      "Ketamine dissociation means you won't notice or respond to the danger",
+      "Both cause nausea — vomiting while deeply dissociated is life-threatening",
+      "The combination is used in some anesthesia — but with careful medical monitoring",
+      "Without monitoring, this combination can be fatal",
+    ],
+    sos: "Use Narcan for the opioid effect, call 911. Recovery position essential. Don't leave someone alone with this combination.",
+  },
+
+  "opioids+mushrooms": {
+    risk: "moderate",
+    title: "Opioids + Mushrooms — Sedation and Confusion",
+    summary: "Opioids sedate while mushrooms create a psychedelic experience. Together, you become sedated AND disoriented — making it very hard to respond to an emergency or recognize that you need help.",
+    effects: [
+      "Breathing is slowed by opioids while mushrooms add disorientation",
+      "You may not recognize symptoms of an opioid overdose",
+      "Nausea from both — serious aspiration risk",
+      "Psychedelic experience becomes harder to navigate while sedated",
+      "Getting help becomes difficult if you feel unable to communicate",
+    ],
+    sos: "If someone is on opioids and mushrooms and seems very \"out of it\" or can't be roused, use Narcan and call 911.",
+  },
+
+  "opioids+nicotine": {
+    risk: "low",
+    title: "Opioids + Nicotine — Minor Interaction, Major Addiction",
+    summary: "Smoking doesn't dramatically increase the acute overdose risk of opioids, but nicotine can affect how opioids work in your body. The bigger risk is that both are highly addictive.",
+    effects: [
+      "Nicotine slightly affects opioid metabolism in the liver",
+      "Both substances together reinforce addictive patterns",
+      "Long-term combined use damages lungs, heart, and brain",
+      "People who use opioids often have higher rates of nicotine addiction",
+    ],
+  },
+
+  "amphetamines+ketamine": {
+    risk: "high",
+    title: "Amphetamines + Ketamine — Chaotic Effects",
+    summary: "Amphetamines speed everything up while ketamine dissociates you from reality. The combination is very unpredictable — you're stimulated but detached, which makes dangerous situations very hard to recognize.",
+    effects: [
+      "Heart is stressed while you're dissociated from recognizing the danger",
+      "Blood pressure can spike unpredictably",
+      "Extreme confusion and disorientation",
+      "Seizure risk is elevated",
+      "Cardiovascular emergency can occur without warning",
+    ],
+    sos: "Seizures or cardiac symptoms after this combination: call 911 immediately.",
+  },
+
+  "amphetamines+mushrooms": {
+    risk: "high",
+    title: "Amphetamines + Mushrooms — Overstimulated Reality",
+    summary: "Amphetamines flood your brain with dopamine while mushrooms alter serotonin and perception. Together, the brain is overwhelmed, and anxiety, paranoia, and psychological distress become very likely.",
+    effects: [
+      "Extreme anxiety and paranoia — very hard to manage",
+      "Heart racing while experiencing intense psychedelic effects",
+      "Risk of stimulant psychosis amplified by psychedelics",
+      "Overheating with physical stimulation from amphetamines",
+      "Bad trips are much more likely",
+    ],
+    sos: "Severe paranoia or panic: safe quiet space, sober companion, grounding techniques. Call 911 if someone becomes a danger to themselves.",
+  },
+
+  "amphetamines+nicotine": {
+    risk: "low",
+    title: "Amphetamines + Nicotine — Stimulant Stack",
+    summary: "Both are stimulants. Combined, the cardiovascular effects add up. Not the most dangerous combo, but definitely harder on the heart than either alone.",
+    effects: [
+      "Additive heart rate and blood pressure increase",
+      "Both suppress appetite — can lead to not eating or drinking",
+      "Both are addictive — combined use reinforces dependence",
+      "Nicotine use tends to increase heavily when on stimulants",
+    ],
+  },
+
+  "ketamine+mushrooms": {
+    risk: "high",
+    title: "Ketamine + Mushrooms — Reality Dissolved",
+    summary: "Both ketamine and mushrooms alter your perception of reality profoundly. Together, the dissociation and psychedelic effects become extreme. Many people find this experience overwhelming and unmanageable.",
+    effects: [
+      "Profound dissociation — you may be completely unresponsive to surroundings",
+      "Nausea and vomiting from both drugs — danger if unresponsive",
+      "Breathing slows from ketamine while psychedelic effects intensify",
+      "Extremely difficult to call for help if something goes wrong",
+      "The experience can be deeply disturbing psychologically",
+    ],
+    sos: "Never use ketamine + psychedelics alone. Have a sober person present. Recovery position if unresponsive. Call 911 if breathing slows or can't be roused.",
+  },
+
+  "ketamine+nicotine": {
+    risk: "low",
+    title: "Ketamine + Nicotine — Minor Interaction",
+    summary: "Nicotine doesn't dramatically change the effects of ketamine. The dissociation from ketamine combined with nicotine's stimulant effect is contradictory but not acutely dangerous in most situations.",
+    effects: [
+      "Nicotine has mild stimulant effect that slightly counteracts ketamine's sedation",
+      "Smoking while dissociated carries fire and burn risk",
+      "Nausea from ketamine is common — don't smoke if feeling sick",
+    ],
+  },
+
+  "mushrooms+nicotine": {
+    risk: "low",
+    title: "Mushrooms + Nicotine — Minor Interaction",
+    summary: "Nicotine doesn't significantly change the psychedelic experience of mushrooms for most people. Some report nicotine briefly sharpens or shifts the experience slightly.",
+    effects: [
+      "No major dangerous interaction",
+      "Nicotine craving can be a distracting annoyance during a trip",
+      "Long-term: both affect mental health with repeated use",
+    ],
+  },
+
+};
+
+/* ═══════════════════════════════════════════
+   WHEEL DRAWING
+═══════════════════════════════════════════ */
+const COUNT = SUBSTANCES.length;
+const SLICE = (2 * Math.PI) / COUNT;
+
+// rotation state for each wheel (radians)
+const rotations = [0, 0];
+
+function drawWheel(canvasId, rotation) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width;
+  const H = canvas.height;
+  const cx = W / 2;
+  const cy = H / 2;
+  const r = cx - 6;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw slices
+  for (let i = 0; i < COUNT; i++) {
+    const startAngle = rotation + i * SLICE;
+    const endAngle = startAngle + SLICE;
+
+    // Slice fill
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = SUBSTANCES[i].color;
+    ctx.fill();
+    ctx.strokeStyle = "rgba(0,0,0,0.4)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Label
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(startAngle + SLICE / 2);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#000000";
+    ctx.font = `bold ${W <= 220 ? 9 : 11}px Inter, Arial, sans-serif`;
+    ctx.shadowColor = "rgba(255,255,255,0.5)";
+    ctx.shadowBlur = 2;
+
+    const labelR = r * 0.78;
+    // Emoji
+    ctx.font = `${W <= 220 ? 14 : 16}px Arial`;
+    ctx.fillText(SUBSTANCES[i].emoji, labelR - 2, 4);
+    // Name
+    ctx.font = `bold ${W <= 220 ? 9 : 10.5}px Inter, Arial, sans-serif`;
+    ctx.fillStyle = "#111";
+    ctx.fillText(SUBSTANCES[i].name, labelR - 22, 4);
+
+    ctx.restore();
+  }
+
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 14, 0, 2 * Math.PI);
+  ctx.fillStyle = "#0d0d0f";
+  ctx.fill();
+  ctx.strokeStyle = "#444";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function initWheels() {
+  drawWheel("wheel1", rotations[0]);
+  drawWheel("wheel2", rotations[1]);
+}
+
+/* ═══════════════════════════════════════════
+   EASING
+═══════════════════════════════════════════ */
+function easeOut(t) {
+  return 1 - Math.pow(1 - t, 4);
+}
+
+/* ═══════════════════════════════════════════
+   SPIN LOGIC
+═══════════════════════════════════════════ */
+// Wheel pointer is at the TOP (- PI/2 in canvas coords)
+// The "selected" slice is the one that the pointer lands in.
+//
+// After rotation R, slice i occupies angles [R + i*SLICE, R + (i+1)*SLICE].
+// The pointer at -PI/2 hits slice i when:
+//   R + i*SLICE <= -PI/2 (mod 2PI) < R + (i+1)*SLICE
+//
+// So to land on slice i, we need R such that:
+//   -PI/2 is inside [R + i*SLICE, R + (i+1)*SLICE]
+//
+// We choose a target rotation that puts the pointer on slice i:
+//   R = -PI/2 - (i + 0.5) * SLICE  (center of slice under pointer)
+//   plus extra full rotations for drama.
+
+function targetRotationForSlice(sliceIndex, extraSpins) {
+  const pointerAngle = -Math.PI / 2;
+  const baseTarget = pointerAngle - (sliceIndex + 0.5) * SLICE;
+  return baseTarget - extraSpins * 2 * Math.PI;
+}
+
+function getSliceAtRotation(rotation) {
+  const pointerAngle = -Math.PI / 2;
+  // normalize pointer position in wheel frame
+  let angle = ((pointerAngle - rotation) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  return Math.floor(angle / SLICE) % COUNT;
+}
+
+let isSpinning = false;
+
+function spinWheels() {
+  if (isSpinning) return;
+  isSpinning = true;
+
+  // Hide previous result
+  const panel = document.getElementById("result-panel");
+  panel.classList.remove("visible");
+
+  // Disable button, show spinner
+  const btn = document.getElementById("spinBtn");
+  const icon = document.getElementById("btnIcon");
+  btn.disabled = true;
+  icon.textContent = "🎰";
+  icon.classList.add("spinning");
+
+  // Pick two different random substances
+  const idx1 = Math.floor(Math.random() * COUNT);
+  let idx2;
+  do { idx2 = Math.floor(Math.random() * COUNT); } while (idx2 === idx1);
+
+  // Choose extra spins (different for each wheel for visual variety)
+  const spins1 = 5 + Math.floor(Math.random() * 4); // 5–8 full spins
+  const spins2 = 5 + Math.floor(Math.random() * 4);
+
+  const finalRot1 = targetRotationForSlice(idx1, spins1);
+  const finalRot2 = targetRotationForSlice(idx2, spins2);
+
+  const startRot1 = rotations[0];
+  const startRot2 = rotations[1];
+
+  // Slightly different durations
+  const dur1 = 3200 + Math.random() * 1200;
+  const dur2 = 3400 + Math.random() * 1200;
+  const maxDur = Math.max(dur1, dur2);
+
+  const startTime = performance.now();
+
+  function animate(now) {
+    const elapsed = now - startTime;
+
+    const t1 = Math.min(elapsed / dur1, 1);
+    const t2 = Math.min(elapsed / dur2, 1);
+
+    rotations[0] = startRot1 + (finalRot1 - startRot1) * easeOut(t1);
+    rotations[1] = startRot2 + (finalRot2 - startRot2) * easeOut(t2);
+
+    drawWheel("wheel1", rotations[0]);
+    drawWheel("wheel2", rotations[1]);
+
+    if (elapsed < maxDur) {
+      requestAnimationFrame(animate);
+    } else {
+      // Snap to exact final rotations
+      rotations[0] = finalRot1;
+      rotations[1] = finalRot2;
+      drawWheel("wheel1", rotations[0]);
+      drawWheel("wheel2", rotations[1]);
+
+      isSpinning = false;
+      btn.disabled = false;
+      icon.textContent = "🎲";
+      icon.classList.remove("spinning");
+
+      showResult(idx1, idx2);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+/* ═══════════════════════════════════════════
+   RESULT DISPLAY
+═══════════════════════════════════════════ */
+function makeKey(a, b) {
+  const names = [SUBSTANCES[a].name.toLowerCase(), SUBSTANCES[b].name.toLowerCase()];
+  // normalize "benzos" key match
+  const normalize = s => s.replace("benzodiazepines", "benzos");
+  return names.map(normalize).sort().join("+");
+}
+
+const RISK_META = {
+  low:       { label: "Low Risk",       cls: "risk-low",       icon: "🟢" },
+  moderate:  { label: "Moderate Risk",  cls: "risk-moderate",  icon: "🟡" },
+  high:      { label: "High Risk",      cls: "risk-high",      icon: "🟠" },
+  dangerous: { label: "DANGEROUS",      cls: "risk-dangerous", icon: "🔴" },
+};
+
+function showResult(idx1, idx2) {
+  const s1 = SUBSTANCES[idx1];
+  const s2 = SUBSTANCES[idx2];
+
+  const key = makeKey(idx1, idx2);
+  const data = INTERACTIONS[key] || {
+    risk: "moderate",
+    title: `${s1.name} + ${s2.name} — Limited Data`,
+    summary: `There isn't a lot of research on mixing ${s1.name.toLowerCase()} and ${s2.name.toLowerCase()} specifically. But combining any two drugs is riskier than using either alone. Your body is processing two different chemicals at the same time, and effects can be unpredictable.`,
+    effects: [
+      "Both drugs compete for your liver's attention — increasing side effects",
+      "Judgment and coordination are worse with any drug combination",
+      "It's harder to know which drug is causing a bad reaction",
+      "Overdose threshold can be lower when drugs interact",
+    ],
+    sos: "When in doubt, don't mix. If something feels wrong, get help. Call 911 or Poison Control (1-800-222-1222).",
+  };
+
+  const risk = RISK_META[data.risk] || RISK_META.moderate;
+
+  // Combo header
+  const header = document.getElementById("comboHeader");
+  header.innerHTML = `
+    <span class="combo-pill" style="border-color:${s1.color}; color:${s1.color}">
+      ${s1.emoji} ${s1.name}
+    </span>
+    <span class="combo-plus">+</span>
+    <span class="combo-pill" style="border-color:${s2.color}; color:${s2.color}">
+      ${s2.emoji} ${s2.name}
+    </span>
+  `;
+
+  // Effects list
+  const effectsHtml = data.effects
+    ? `<ul class="effects-list">${data.effects.map(e => `<li>${e}</li>`).join("")}</ul>`
+    : "";
+
+  // SOS bar
+  const sosHtml = data.sos
+    ? `<div class="sos-bar"><strong>⚠️ If something goes wrong:</strong> ${data.sos}</div>`
+    : "";
+
+  // Risk card
+  const card = document.getElementById("riskCard");
+  card.innerHTML = `
+    <div class="risk-level ${risk.cls}">${risk.icon} ${risk.label}</div>
+    <h2>${data.title}</h2>
+    <p class="summary">${data.summary}</p>
+    ${effectsHtml}
+    ${sosHtml}
+  `;
+
+  // Show panel
+  const panel = document.getElementById("result-panel");
+  requestAnimationFrame(() => {
+    panel.classList.add("visible");
+    setTimeout(() => panel.scrollIntoView({ behavior: "smooth", block: "start" }), 200);
+  });
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+window.addEventListener("DOMContentLoaded", () => {
+  // Offset initial rotations so labels don't all start at exactly 0
+  rotations[0] = -Math.PI / 2 - SLICE * 0.5; // slight offset so a label doesn't sit on the pointer
+  rotations[1] = -Math.PI / 2 - SLICE * 0.5;
+  initWheels();
+});
+
+// Redraw on resize
+window.addEventListener("resize", () => {
+  drawWheel("wheel1", rotations[0]);
+  drawWheel("wheel2", rotations[1]);
+});
+</script>
+
+</body>
+</html>
