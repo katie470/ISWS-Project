@@ -6689,6 +6689,10 @@ def _agree_share(df_grade, glist, name):
     return pct(_agree, _c.sum().sum(), name, f'students in {", ".join(glist)} who answered')
 _upper = [g for g in ['9th', '10th', '11th', '12th'] if g in _grades_seq]
 _lower = [g for g in ['7th', '8th'] if g in _grades_seq]
+# C10: "7th-8th graders" / "9th-12th graders" are built from the grades present
+QA_CONTEXT['has_lower_grades'] = bool(_lower)
+QA_CONTEXT['lower_grades_label'] = grade_range_label(_lower) if _lower else ''
+QA_CONTEXT['upper_grades_label'] = grade_range_label(_upper) if _upper else ''
 ninto12thsocial_atmocountagree_perc = _agree_share(AgreeDisagree_answers_grade[0], _upper, 'culture: social atmosphere agree, 9th-12th')
 ninto12thpressured_bygradecountagree_perc = _agree_share(AgreeDisagree_answers_grade[1], _upper, 'culture: pressured agree, 9th-12th')
 QA_CONTEXT['ninto12thsocial_atmocountagree_perc'] = ninto12thsocial_atmocountagree_perc

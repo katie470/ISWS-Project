@@ -589,6 +589,19 @@ def fix(path_in, path_out, seventh=False):
             set_flag(_gp, 'w:keepNext')
     log('2.2: gender tables labelled per grade, one grade per page')
 
+    # C10/C24: statements about 7th-8th graders only when the school has them;
+    # grade-range labels come from the grades present
+    n_low = 0
+    for p in list(body.findall(qn('w:p'))):
+        t = ptext(p)
+        if '{{seventhand8th' in t and 'has_lower_grades' not in ptext(p.getprevious() if p.getprevious() is not None else p):
+            replace_in_p(p, '7th-8th graders', '{{lower_grades_label}} graders')
+            wrap_if(p, p, 'has_lower_grades')
+            n_low += 1
+        elif '9th-12th graders' in t and '{{ninto12th' in t:
+            replace_in_p(p, '9th-12th graders', '{{upper_grades_label}} graders')
+    log(f'C10: {n_low} 7th-8th statements made conditional; grade-range labels from the data')
+
     # ============ C17: footnote under the "Greatest Number" table ============
     gl = find_p(body, lambda t: t.strip().startswith('Greatest Number of Whole Drinks Consumed in a Row'))
     if gl is not None and '{{greatest_footnote}}' not in ptext(body):
