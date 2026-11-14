@@ -360,8 +360,15 @@ def fix(path_in, path_out, seventh=False):
             log(f'T11: "{t}" -> "{CAPS[t]}"')
 
     # ============ C25: survey date and report date, labelled ============
+    first_cover = True
     for p in all_ps():
         if ptext(p).strip() == '{{date_today}}':
+            if first_cover:
+                # main cover page: survey date only (no report date)
+                set_text(p, 'Survey date: {{date_survey}}')
+                first_cover = False
+                log('C25: cover page shows the survey date')
+                continue
             set_text(p, 'Report date: {{report_date}}')
             sp = new_p_after(p, 'Survey date: {{date_survey}}', like=p)
             p.addprevious(sp)          # survey date first, then report date

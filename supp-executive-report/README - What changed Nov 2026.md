@@ -84,7 +84,7 @@ The Reliability section prints how many surveys each rule removed.
 
 **C24** A grade with no respondents has no column, bars or table: 8th-grade columns (school and U.S.) are removed and the 8th-grade substance and gender sections are not printed.
 
-**C25** Cover and appendix covers print "Survey date: ..." and "Report date: ...".
+**C25** The cover page prints "Survey date: ...". The appendix covers print "Survey date: ..." and "Report date: ...".
 
 ## Template fixes (applied by `fix_templates.py`)
 
