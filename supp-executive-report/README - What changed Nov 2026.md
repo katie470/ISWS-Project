@@ -105,4 +105,10 @@ The Reliability section prints how many surveys each rule removed.
 
 ## Tested
 
-See the commit message for the test runs. Before sending the next real report, open it in Word (let it update the table of contents when asked), and read `_QA_lint.txt` (Part 4 checks first) and `_exclusion_log.csv`.
+Both scripts were run end to end with their templates on synthetic survey exports of different shapes, and every Part 4 check passed:
+
+- 8th-12th script: a 9th-12th school (491 responses) and an 8th-12th school (411)
+- 7th grade script: a 7th-12th school (431) and a 9th-12th school (491, so both the 7th and 8th grade columns drop out)
+- A norms file missing its Alcohol lifetime Total row stops at startup; a norms file with no header row is read correctly.
+
+Before sending the next real report, open it in Word (let it update the table of contents when asked), and read `_QA_lint.txt` (Part 4 checks first) and `_exclusion_log.csv`.
