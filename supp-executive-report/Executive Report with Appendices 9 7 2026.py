@@ -6747,11 +6747,18 @@ QA_CONTEXT['cluster_examples'] = [
     f"{fmt_pct(h)} of “higher-risk” drinkers have used {_SUB_WORDS.get(s, s)} in the past 12 months, compared with "
     f"{fmt_pct(l)} of “lower-risk” drinkers, {fmt_pct(nd)} of “non-drinkers” and {fmt_pct(a)} of all {BODY_GROUP_LABEL} graders."
     for _, s, h, l, nd, a in _cluster[:4]]
-QA_CONTEXT['clustering_sentence'] = (
-    (f"For {len(_cluster)} of {len([q for q in YNQs if q.endswith('_12') and q != 'use_alcohol_12'])} substances, a larger share of "
-     f"“higher-risk” drinkers than of “lower-risk” drinkers and “non-drinkers” used the substance in the past 12 months, "
-     f"by more than one student’s worth of difference." + (" For example:" if _cluster else ''))
-    if _hr_n else "There are no “higher-risk” drinkers in these grades, so no comparison is made.")
+_n_subs = len([q for q in YNQs if q.endswith('_12') and q != 'use_alcohol_12'])
+if not _hr_n:
+    QA_CONTEXT['clustering_sentence'] = "There are no “higher-risk” drinkers in these grades, so no comparison is made."
+elif _cluster:
+    QA_CONTEXT['clustering_sentence'] = (
+        f"These findings show how risk factors can “cluster.” For {len(_cluster)} of {_n_subs} substances, a larger share "
+        f"of “higher-risk” drinkers than of “lower-risk” drinkers and “non-drinkers” used the substance in the past 12 "
+        f"months, by more than one student’s worth of difference. For example:")
+else:
+    QA_CONTEXT['clustering_sentence'] = (
+        f"In the {School} results, no substance was used in the past 12 months by a clearly larger share of “higher-risk” "
+        f"drinkers than of “lower-risk” drinkers and “non-drinkers” (a difference of more than one student).")
 
 # ---------- C13: say how many answered when it differs from the group size ----------
 _n_where = len(_where)
@@ -6764,9 +6771,9 @@ _easy = _agree_all(AgreeDisagree_answers[2]); _own = _agree_all(AgreeDisagree_an
 _resp = _agree_all(AgreeDisagree_answers[5]); _fit_dis = round(100 - float(_agree_all(AgreeDisagree_answers[6])), 1)
 _supportive = [float(v) for v in (_easy, _own, _resp, _fit_dis) if v != '']
 if _supportive and min(_supportive) > 50:
-    _frame = 'largely supportive of students who choose not to drink'
+    _frame = 'largely supportive'
 elif _supportive and max(_supportive) < 50:
-    _frame = 'largely not supportive of students who choose not to drink'
+    _frame = 'largely unsupportive'
 else:
     _frame = 'mixed'
 _light_dis = pct(*[pd.to_numeric(AgreeDisagree_answers[7]['Count (N)'], errors='coerce').fillna(0)[
@@ -6787,7 +6794,7 @@ QA_CONTEXT['tolerance_sentence'] = (
     f"“{_q('own_decisions')}” ({range_phrase(_od)}), and {_fit_dis}% disagree that “{_q('fit_in')}.”")
 
 # ---------- C19: answer wording quoted from the survey, not paraphrased ----------
-QA_CONTEXT['att_never_good_quote'] = (f"“{sort_order6[0].rstrip('.').lower()},” or that “{sort_order6[1].rstrip('.').lower()}”")
+QA_CONTEXT['att_never_good_quote'] = (f"“{sort_order6[0].rstrip('.').lower()},” or that “{sort_order6[1].rstrip('.').lower()}.”")
 
 # ---------- C15: grades closing sentence is conditional ----------
 _n_cannabis_group = int(clean['yearlypot'].notna().sum())
@@ -8906,8 +8913,11 @@ for _tbl in _body.iter(_qn('w:tbl')):
         _start = _label
         _p0 = _label.getprevious()
         while _p0 is not None and _p0.tag == _qn('w:p') and _ptext(_p0) and \
-                (_style_id(_p0).lower().startswith('heading') or len(_ptext(_p0)) < 200) and \
-                _p0.find(_qn('w:pPr') + '/' + _qn('w:keepNext')) is not None:
+                (((_style_id(_p0).lower().startswith('heading') or len(_ptext(_p0)) < 200) and
+                  _p0.find(_qn('w:pPr') + '/' + _qn('w:keepNext')) is not None)
+                 or _ptext(_p0).startswith('The following table')):
+            if _ptext(_p0).startswith('The following table'):
+                _set_flag(_p0, 'w:keepNext')
             _start = _p0; _p0 = _p0.getprevious()
         _set_flag(_start, 'w:pageBreakBefore')
 # No title left alone at the bottom of a page: a page break on a paragraph
@@ -8923,18 +8933,21 @@ for _p in list(_body.findall(_qn('w:p'))):
         continue
     _top = _p
     _q = _p.getprevious()
-    while _q is not None and _q.tag == _qn('w:p') and _ptext(_q) and len(_ptext(_q)) < 200 and \
+    while _q is not None and _q.tag == _qn('w:p') and _ptext(_q) and \
+            (len(_ptext(_q)) < 200 or _ptext(_q).startswith('The following table')) and \
             (_style_id(_q) in _TITLE_STYLES or _style_id(_q) in _H1_IDS or
-             _style_id(_q).lower().startswith('heading')) and \
-            _q.find(_qn('w:pPr') + '/' + _qn('w:pageBreakBefore')) is None:
+             _style_id(_q).lower().startswith('heading') or _ptext(_q).startswith('The following table')):
         _top = _q
-        if _style_id(_q) in _H1_IDS:
-            break
+        if _style_id(_q) in _H1_IDS or _q.find(_qn('w:pPr') + '/' + _qn('w:pageBreakBefore')) is not None:
+            break                         # this line already starts the page
         _q = _q.getprevious()
     if _top is not _p:
         _pb.getparent().remove(_pb)
         if _style_id(_top) not in _H1_IDS:
             _set_flag(_top, 'w:pageBreakBefore')
+        _q = _top                         # keep the moved lines with the table
+        while _q is not None and _q is not _p:
+            _set_flag(_q, 'w:keepNext'); _q = _q.getnext()
 # T4: chart paragraphs are never "keep with next"
 for _p in _body.iter(_qn('w:p')):
     if _has_drawing(_p):
@@ -9090,6 +9103,16 @@ _p4(10, ('Survey date' in _all_text and str(date_survey) in _all_text and 'Repor
          and REPORT_DATE in _all_text),
     f'survey date ({date_survey}) and report date ({REPORT_DATE}) both printed with labels')
 print('PART 4 CHECKS\n  ' + '\n  '.join(PART4))
+# Paragraphs shaded green in the template need a manual review in every report:
+# list them so they are not missed.
+_green = []
+for _pel in _body.iter(_qn('w:p')):
+    if any((_s.get(_qn('w:fill')) or '').lower() == '00ff00' for _s in _pel.iter(_qn('w:shd'))) and _ptext(_pel).strip():
+        _green.append(_ptext(_pel).strip())
+for _g in _green:
+    LINT_WARNINGS.append(f'MANUAL REVIEW (green text): "{_g[:150]}"')
+if _green:
+    print(f"{len(_green)} green paragraph(s) need a manual review (listed in _QA_lint.txt).")
 
 # Word refreshes the table of contents (and page numbers) when the report is
 # opened, i.e. after pagination is final (T16).

@@ -207,6 +207,42 @@ FAIL_ON_TIME_ORDER_ERRORS = True
 # contains template placeholders, author notes or broken text.
 FAIL_ON_LINT_ERRORS = True
 
+##############################
+### ISB FIXES (ISB SUPP Executive Report 2026 hand corrections, Nov 2026)
+### Item codes C1-C25 / T1-T20 refer to "SUPP report code and template fixes".
+##############################
+# C3: named exclusion rules. Every excluded respondent is written to
+# <report>_exclusion_log.csv with its response ID and the rule(s) it triggered,
+# so the report can be rebuilt from the raw CSV plus that log.
+#   R1a ALL_DRUGS        reported every listed hard drug (12-month or 30-day block)
+#   R1b CANNABIS_AGE     gave an age of first cannabis use but "Never" for cannabis
+#                        frequency (or the reverse)
+#   R1c FIRST_DRINK_AGE  age of first drink is older than the student's own age, or
+#                        gave a first-drink age but wrote that they do not drink
+#   R1d ALCOHOL_12M      lifetime drinker who says "No" to a drink in the past 12
+#                        months but ticks alcohol in the 12-month substance list
+#   R1e MOSTLY_BLANK     answered fewer than MIN_ANSWERED_ITEMS questions
+#   R1f LIFETIME_NEVER   past-year use contradicts their own "never used" answer
+#   R1g SPEEDER          finished in under MIN_COMPLETION_MINUTES (raw Typeform only)
+#   R1h TIME_ORDER       past-30-day hard-drug use with no past-12-month use
+EXCLUDE_FIRST_DRINK_AGE = True
+EXCLUDE_ALCOHOL_12M_CONTRADICTIONS = True
+EXCLUDE_MOSTLY_BLANK = True
+MIN_ANSWERED_ITEMS = 40          # of the ~170 survey questions
+
+# C16: a percentage whose denominator is under this many students is always
+# printed with its count, e.g. "50.0% (1 of 2)".
+SHOW_N_BELOW = 10
+# C15: below this many students in a group, no direction is claimed for the
+# grades/achievement comparison.
+MIN_GROUP_FOR_GRADES_CLAIM = 20
+
+# C25: two explicit dates. The survey date comes from the setup questions. The
+# report date is today unless SUPP_REPORT_DATE is set (any format), so the
+# setup questions (and the SUPP Report Maker form) are unchanged.
+REPORT_DATE = os.environ.get('SUPP_REPORT_DATE', '').strip() or \
+    datetime.date.today().strftime('%B %-d, %Y' if os.name != 'nt' else '%B %d, %Y')
+
 def _grade_num(g):
     try:
         return int(re.sub(r'\D', '', str(g)))
@@ -270,6 +306,46 @@ def round(x, ndigits=None):
 
 # ---- B2: every narrative percentage is computed from counts, with its base ----
 METRIC_LOG = []
+# C4: the shared results object. Every named statistic is stored ONCE here
+# (value, numerator, denominator, base). Narrative sentences read from it and
+# the Part 4 consistency check compares it against the tables.
+RESULTS = {}
+
+class _Pct(float):
+    """A percentage that remembers its numerator and denominator (C4/C16).
+    Behaves like a float in arithmetic. When the denominator is under
+    SHOW_N_BELOW, printing it (f-string or template) leaves an invisible marker
+    that the post-render step turns into "50.0% (1 of 2)"."""
+    def __new__(cls, value, n, d):
+        obj = float.__new__(cls, value)
+        obj.n, obj.d = int(round(n)), int(round(d))
+        return obj
+    @property
+    def small(self):
+        return 0 < self.d < SHOW_N_BELOW
+    def _num(self):
+        return f"{float(self):.1f}"
+    def marked(self):
+        """Report text: the number plus an invisible marker when the base is small."""
+        if self.small:
+            return f"{self._num()}⁣N{self.n}D{self.d}⁣"
+        return self._num()
+    def __str__(self):
+        # str() stays a plain number so code that parses it back still works;
+        # f-strings (report sentences) and the template get the marked form.
+        return self._num()
+    def __format__(self, spec):
+        return self.marked() if not spec else format(float(self), spec)
+    def __repr__(self):
+        return self._num()
+    def __reduce__(self):
+        return (float, (float(self),))
+
+_SMALL_N_MARKER = re.compile('(\\d+(?:\\.\\d+)?)⁣N(\\d+)D(\\d+)⁣(%?)')
+
+def expand_small_n(text):
+    """'50.0<marker>%' -> '50.0% (1 of 2)'. Used on rendered paragraphs."""
+    return _SMALL_N_MARKER.sub(lambda m: f"{m.group(1)}{m.group(4)} ({m.group(2)} of {m.group(3)})", text)
 
 def pct(n, d, name=None, base=''):
     """n/d*100 rounded half up to 1 decimal; '' when d is 0. Logged with its base."""
@@ -277,17 +353,18 @@ def pct(n, d, name=None, base=''):
         n = float(n); d = float(d)
     except (TypeError, ValueError):
         return ''
-    val = round(n / d * 100, 1) if d > 0 else ''
+    val = _Pct(round(n / d * 100, 1), n, d) if d > 0 else ''
     if name:
         METRIC_LOG.append({'metric': name, 'numerator': n, 'denominator': d,
-                           'percent': val, 'base': base,
+                           'percent': float(val) if val != '' else '', 'base': base,
                            'small_base': bool(d and d < MIN_CELL_N)})
+        RESULTS[name] = {'value': float(val) if val != '' else None, 'n': n, 'd': d, 'base': base}
         if d and d < MIN_CELL_N:
-            logger.warning(f"B9 SMALL BASE: {name} = {val}% uses only {int(d)} students ({base})")
+            logger.warning(f"B9 SMALL BASE: {name} = {float(val) if val != '' else ''}% uses only {int(d)} students ({base})")
     return val
 
 def fmt_pct(v):
-    """'12.5%' for numbers, '-' for blanks."""
+    """'12.5%' for numbers, '-' for blanks; '50.0% (1 of 2)' for small bases (C16)."""
     if v == '' or v is None:
         return '-'
     try:
@@ -295,6 +372,8 @@ def fmt_pct(v):
             return '-'
     except (TypeError, ValueError):
         pass
+    if isinstance(v, _Pct) and v.small:
+        return f"{v._num()}% ({v.n} of {v.d})"
     return f"{round(float(v), 1)}%"
 
 def count_pct_from_table(df, mask, col):
@@ -308,7 +387,7 @@ def count_pct_from_table(df, mask, col):
     total = counts.sum()
     if total == 0:
         return ''
-    return round(counts[mask].sum() / total * 100, 1)
+    return pct(counts[mask].sum(), total)   # C4/C16: keeps its numerator and denominator
 
 def share_word(p):
     """B5: 'a majority' only when over 50%."""
@@ -343,7 +422,7 @@ def trend_phrase(series, unit='grade'):
         try:
             if v == '' or v is None or pd.isna(v):
                 continue
-            pts.append((g, float(v)))
+            pts.append((g, v if isinstance(v, _Pct) else float(v)))   # C16: keep the count
         except (TypeError, ValueError):
             continue
     if len(pts) < 2:
@@ -375,7 +454,7 @@ def range_phrase(series):
         try:
             if v == '' or v is None or pd.isna(v):
                 continue
-            pts.append((g, float(v)))
+            pts.append((g, v if isinstance(v, _Pct) else float(v)))   # C16: keep the count
         except (TypeError, ValueError):
             continue
     if not pts:
@@ -512,22 +591,91 @@ else:
     except Exception as _e:
         _errors.append(f"Survey CSV could not be read: {_e}")
 
-# 2. Check MTF CSV exists and is readable
+# 2. Check MTF CSV exists, is readable and complete (C1)
+_MTF_COLS = ['Type', '8th', '10th', '12th', 'variable', 'timeline', 'Year']
+_MTF_TYPES = ['Total', 'Male', 'Female']
+_MTF_TIMELINES = ['lifetime', 'past-12-months', 'past-30-days']
+
+def read_mtf(path):
+    """C1: read the MTF norms file without ever losing its first data row.
+    Accepts comma, semicolon or tab separated files, with or without a header
+    row. A file whose first line is data (e.g. 'Total;16.8;29.6;48.6;Alcohol;
+    lifetime;2025') used to be read with that line as the header, which silently
+    dropped the Alcohol lifetime Total row."""
+    with open(path, 'r', encoding='utf-8-sig', errors='replace') as _f:
+        _lines = [l for l in _f.read().splitlines() if l.strip()]
+    if not _lines:
+        raise ValueError('the MTF file is empty')
+    _first = _lines[0]
+    _sep = max([',', ';', '\t'], key=_first.count)
+    _cells = [c.strip().strip('"') for c in _first.split(_sep)]
+    _looks_like_data = bool(_cells) and (_cells[0] in _MTF_TYPES or
+                                         any(re.fullmatch(r'-?\d+(\.\d+)?', c) for c in _cells))
+    if _looks_like_data:
+        _df = pd.read_csv(path, sep=_sep, header=None, encoding='utf-8-sig', dtype=str)
+        if _df.shape[1] != len(_MTF_COLS):
+            raise ValueError(f"the MTF file has no header row and {_df.shape[1]} columns; expected "
+                             f"{len(_MTF_COLS)} columns in this order: {', '.join(_MTF_COLS)}")
+        _df.columns = _MTF_COLS
+        logger.warning("C1: the MTF file has no header row; its first line was read as data (not as a header).")
+    else:
+        _df = pd.read_csv(path, sep=_sep, encoding='utf-8-sig', dtype=str)
+        _df.columns = [str(c).strip() for c in _df.columns]
+        if 'Type' not in _df.columns:
+            _df = _df.rename(columns={_df.columns[0]: 'Type'})
+    for _c in ['Type', 'variable', 'timeline']:
+        if _c in _df.columns:
+            _df[_c] = _df[_c].astype(str).str.strip()
+    if 'Year' in _df.columns:
+        _df['Year'] = pd.to_numeric(_df['Year'], errors='coerce').astype('Int64')
+    for _g in ['8th', '10th', '12th']:
+        if _g in _df.columns:
+            # '-' (or a garbled dash) means "not measured by MTF"; keep it as text.
+            _df[_g] = _df[_g].astype(str).str.strip().replace({'nan': '-', '': '-'})
+            _num = pd.to_numeric(_df[_g], errors='coerce')
+            _df[_g] = _num.where(_num.notna(), '-')
+    return _df
+
+def validate_mtf(df, year):
+    """C1 / Part 4 check 1: every substance x timeline must have Total, Male
+    and Female rows for the chosen year. Returns a list of problems."""
+    problems = []
+    missing_cols = [c for c in _MTF_COLS if c not in df.columns]
+    if missing_cols:
+        return [f"missing column(s) {missing_cols}; expected {', '.join(_MTF_COLS)}"]
+    d = df[df['Year'].astype(str) == str(year)]
+    if d.empty:
+        return [f"no rows for year {year}"]
+    for (sub, tl), grp in d.groupby(['variable', 'timeline']):
+        have = set(grp['Type'])
+        lack = [t for t in _MTF_TYPES if t not in have]
+        if lack:
+            problems.append(f"{sub} / {tl}: no {', '.join(lack)} row")
+    for sub, grp in d.groupby('variable'):
+        lack_tl = [tl for tl in _MTF_TIMELINES if tl not in set(grp['timeline'])
+                   and not (tl == 'lifetime' and sub not in ('Alcohol', 'Marijuana'))]
+        if lack_tl and sub in ('Alcohol', 'Marijuana'):
+            problems.append(f"{sub}: no {', '.join(lack_tl)} rows")
+    return problems
+
 if not os.path.isfile(MTFfilepath):
     _errors.append(f"MTF CSV not found: {MTFfilepath}")
 else:
     try:
-        _test_mtf = pd.read_csv(MTFfilepath)
-        if 'Unnamed: 0' in _test_mtf.columns:
-            _test_mtf = _test_mtf.rename(columns={'Unnamed: 0': 'Type'})
+        _test_mtf = read_mtf(MTFfilepath)
         if 'Year' not in _test_mtf.columns:
             _errors.append("MTF CSV is missing a 'Year' column — check the file format.")
         else:
-            _avail = sorted(_test_mtf['Year'].unique())
+            _avail = sorted(int(y) for y in _test_mtf['Year'].dropna().unique())
             if MTFyear not in [str(y) for y in _avail]:
                 _warnings.append(f"MTF year '{MTFyear}' not in file. Available: {_avail}. Will use {max(_avail)}.")
                 MTFyear = str(max(_avail))
-            print(f"  ✅ MTF CSV found (year {MTFyear} will be used)")
+            _mtf_problems = validate_mtf(_test_mtf, MTFyear)
+            if _mtf_problems:
+                _errors.append("MTF CSV is incomplete (every substance and timeline needs Total, Male and Female rows):\n      "
+                               + "\n      ".join(_mtf_problems))
+            else:
+                print(f"  ✅ MTF CSV found and complete (year {MTFyear} will be used)")
     except Exception as _e:
         _errors.append(f"MTF CSV could not be read: {_e}")
 
@@ -1155,16 +1303,9 @@ if '#' in _tf_cols and 'SUBMIT DATE (UTC)' in _tf_cols:
     clean = clean[[c for c in clean.columns if c not in ('Submitted At', 'Token')]
                   + ['Submitted At', 'Token']]
 
-MTF = pd.read_csv(MTFfilepath)
-# Normalize MTF - rename first unnamed column to 'Type' if needed
-if 'Type' not in MTF.columns and 'Unnamed: 0' in MTF.columns:
-    MTF = MTF.rename(columns={'Unnamed: 0': 'Type'})
-# Google Sheets exports name the blank first column 'Column 1'; treat any unrecognized
-# first column as the Type column (values: Total/Male/Female)
-if 'Type' not in MTF.columns:
-    MTF = MTF.rename(columns={MTF.columns[0]: 'Type'})
+MTF = read_mtf(MTFfilepath)   # C1: same reader as the startup check (never drops the first row)
 # Filter to requested MTF year (use closest available if exact not found)
-available_years = sorted(MTF['Year'].unique())
+available_years = sorted(int(y) for y in MTF['Year'].dropna().unique())
 if MTFyear and MTFyear in [str(y) for y in available_years]:
     MTF = MTF[MTF['Year'].astype(str) == MTFyear]
 else:
@@ -1224,6 +1365,9 @@ if len(mismatchedcols) > 0:
 # 'Other.1', ... They are not in collist, so they must be dropped before the
 # positional rename below, or every later column is shifted by one.
 _other_text_cols = [c for c in clean.columns if re.fullmatch(r'Other(\.\d+)?', str(c).strip())]
+# R1c needs the "where did you first use alcohol: Other" free text (a student who
+# gives a first-drink age but writes "I don't drink"). Keep it aside.
+_first_use_other_text = clean[_other_text_cols[0]].copy() if _other_text_cols else None
 if _other_text_cols:
     logger.info(f"Dropping {len(_other_text_cols)} free-text 'Other' column(s): {_other_text_cols}")
     clean = clean.drop(columns=_other_text_cols)
@@ -1247,6 +1391,7 @@ for _name, _words in _ADDED_LATER.items():
         clean.insert(collist.index(_name), f'__missing_{_name}', np.nan)
         logger.warning(f"This survey did not ask the '{_name}' question; it is left blank.")
 
+_raw_question_headers = list(clean.columns[:len(collist)])
 try:
     n_extra = len(clean.columns) - len(collist)
     if n_extra == 2:
@@ -1255,8 +1400,14 @@ try:
         clean.columns = collist + ['Submitted At', 'Token', 'agenum']
     else:
         raise ValueError(f"{n_extra} columns beyond collist (expected 2: Submitted At, Token)")
+    # C19: the exact question text, from the survey file itself, keyed by
+    # internal name. Quoted item wording in the report comes from here, never
+    # from typed boilerplate ("drinking is okay", not "drinking is alright").
+    QUESTION_TEXT = {k: re.sub(r'\s+', ' ', str(v).replace('*', '')).strip()
+                     for k, v in zip(collist, _raw_question_headers)}
     for _name, _vals in _extra_q.items():
         clean[_name] = _vals
+    clean['first_use_other_text'] = _first_use_other_text.values if _first_use_other_text is not None else np.nan
 except ValueError as e:
     raise ValueError(f"Column count mismatch: CSV has {len(clean.columns)} columns but collist+extras has {len(collist)+2}. Check collist. Original error: {e}")
 
@@ -1391,22 +1542,10 @@ N = len(clean)
 # print(f"Leaving a n={N}")
 # clean =clean[clean['Flags'].isna()]
 
-# Example: assuming your DataFrame is called df
-contradiction_mask = (
-    ((clean['age_first_time_pot'] == 'I have never used marijuana at all') & (clean['how_often_pot'] != 'Never')) |
-    ((clean['how_often_pot'] == 'Never') & (clean['age_first_time_pot'] != 'I have never used marijuana at all'))
-)
-
-# Get the indices of contradictory rows
-contradictory_indices = clean[contradiction_mask].index
-
-print(f"Found {len(contradictory_indices)} contradictory survey answers (marijuana use), removing rows")
-removed_N = len(contradictory_indices)
-# Remove them from the DataFrame
-clean = clean.drop(index=contradictory_indices)
-
-# optional: reset index if needed
-clean = clean.reset_index(drop=True)
+# C2/C3: the cannabis age-vs-frequency contradiction (rule R1b) used to be removed
+# here silently. All exclusion rules now run together in the R1 block below and
+# every excluded response is written to the exclusion log.
+removed_N = 0
 
 # Reconcile the entered grade list with the grades actually present in the
 # survey data. Grades present in the data but missing from the entered list
@@ -1520,35 +1659,82 @@ for _d in _HARD_DRUGS:
     _c12, _c30 = f'use_{_d}_12', f'use_{_d}_30'
     if _c12 in clean.columns and _c30 in clean.columns:
         _flag_time_order |= clean[_c30].eq('Yes') & ~clean[_c12].eq('Yes')
+# R1b (C3): age of first cannabis use given, but "Never" for frequency (or the reverse)
+_flag_cannabis_age = (
+    (_never_pot & (clean['how_often_pot'] != 'Never')) |
+    ((clean['how_often_pot'] == 'Never') & ~_never_pot)
+)
+# R1c (C3): age of first drink is older than the student is now (e.g. "19 years or
+# older" at 17), or a first-drink age was given with free text saying they do not drink.
+def _band_low(v):
+    _m = re.match(r'\s*(\d+)', str(v))
+    return float(_m.group(1)) if _m else np.nan
+_age_now = pd.to_numeric(clean['age'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
+_first_low = clean['age_at_first_drink'].map(lambda v: np.nan if pd.isna(v) else _band_low(v))
+_no_drink_text = clean['first_use_other_text'].astype(str).str.contains(
+    r"(?i)\b(?:don'?t|do not|never|not)\s+(?:drink|had|have|tried)|\bno alcohol\b|\bnever drank\b", na=False)
+_flag_first_drink_age = (~_never_drink & clean['age_at_first_drink'].notna() &
+                         ((_first_low > _age_now) | _no_drink_text))
+# R1d (C3): lifetime drinker who says "No" to a drink in the past 12 months but
+# ticks alcohol in the 12-month substance list.
+_flag_alcohol_12m = (~_never_drink & clean['age_at_first_drink'].notna() &
+                     clean['one_drink_past_12'].eq('No') & clean['use_alcohol_12'].eq('Yes'))
+# R1e (C3): mostly blank. Counts answered survey questions (not metadata).
+_answered = clean[[c for c in collist if c in clean.columns]].notna().sum(axis=1)
+_flag_mostly_blank = _answered < MIN_ANSWERED_ITEMS
+
+# Named rules, in the order they are reported (C2/C3).
+EXCLUSION_RULES = [
+    ('R1a', 'ALL_DRUGS', 'reported every listed hard drug in the 12-month or 30-day list',
+     _flag_all_drugs, EXCLUDE_ALL_DRUG_REPORTERS),
+    ('R1b', 'CANNABIS_AGE', 'gave an age of first cannabis use but "Never" for cannabis frequency (or the reverse)',
+     _flag_cannabis_age, True),
+    ('R1c', 'FIRST_DRINK_AGE', 'age of first drink is older than their age, or wrote that they do not drink',
+     _flag_first_drink_age, EXCLUDE_FIRST_DRINK_AGE),
+    ('R1d', 'ALCOHOL_12M', 'lifetime drinker with no drink in the past 12 months who ticked alcohol in the 12-month list',
+     _flag_alcohol_12m, EXCLUDE_ALCOHOL_12M_CONTRADICTIONS),
+    ('R1e', 'MOSTLY_BLANK', f'answered fewer than {MIN_ANSWERED_ITEMS} questions',
+     _flag_mostly_blank, EXCLUDE_MOSTLY_BLANK),
+    ('R1f', 'LIFETIME_NEVER', 'past-year use contradicts their own "never used" lifetime answer',
+     _flag_contradiction, EXCLUDE_LIFETIME_CONTRADICTIONS),
+    ('R1g', 'SPEEDER', f'completed the survey in under {MIN_COMPLETION_MINUTES} minutes',
+     _flag_speeder, EXCLUDE_SPEEDERS),
+    ('R1h', 'TIME_ORDER', 'past-30-day hard-drug use but no past-12-month use of the same drug',
+     _flag_time_order, EXCLUDE_TIME_ORDER_CONTRADICTIONS),
+]
 _exclude_mask = pd.Series(False, index=clean.index)
-if EXCLUDE_ALL_DRUG_REPORTERS:
-    _exclude_mask |= _flag_all_drugs
-if EXCLUDE_LIFETIME_CONTRADICTIONS:
-    _exclude_mask |= _flag_contradiction
-if EXCLUDE_SPEEDERS:
-    _exclude_mask |= _flag_speeder
-if EXCLUDE_TIME_ORDER_CONTRADICTIONS:
-    _exclude_mask |= _flag_time_order
-INVALID_RESPONDENTS = clean[_exclude_mask | _flag_all_drugs | _flag_contradiction | _flag_speeder | _flag_time_order].copy()
+_any_flag = pd.Series(False, index=clean.index)
+for _code, _name, _desc, _mask, _on in EXCLUSION_RULES:
+    _any_flag |= _mask
+    if _on:
+        _exclude_mask |= _mask
+INVALID_RESPONDENTS = clean[_any_flag].copy()
 _inv_idx = INVALID_RESPONDENTS.index
-_speed_text = INVALID_RESPONDENTS['completion_minutes'].map(
-    lambda m: f'completed survey in {m:.1f} minutes (< {MIN_COMPLETION_MINUTES} min)')
-INVALID_RESPONDENTS['reason'] = np.select(
-    [_flag_all_drugs[_inv_idx], _flag_contradiction[_inv_idx], _flag_time_order[_inv_idx]],
-    ['reported every listed hard drug',
-     'past-year use contradicts "never used" lifetime answer',
-     'past-30-day hard-drug use but no past-12-month use of the same drug'],
-    default=_speed_text)
+def _rules_for(i, on_only=False):
+    return [(c, n, d) for c, n, d, m, on in EXCLUSION_RULES if m[i] and (on or not on_only)]
+INVALID_RESPONDENTS['reason'] = [
+    '; '.join(f'{c} {n}: {d}' for c, n, d in _rules_for(i)) for i in _inv_idx]
 INVALID_RESPONDENTS['excluded'] = _exclude_mask[_inv_idx]
+# C2: the exclusion log. One row per excluded response, with its response ID.
+EXCLUSION_LOG = pd.DataFrame([{
+    'response_id': clean.at[i, 'Token'],
+    'grade': clean.at[i, 'grade_level'], 'sex': clean.at[i, 'sex'],
+    'rule_codes': '; '.join(c for c, _, _ in _rules_for(i, True)),
+    'rules': '; '.join(f'{n}: {d}' for _, n, d in _rules_for(i, True)),
+} for i in clean.index[_exclude_mask]], columns=['response_id', 'grade', 'sex', 'rule_codes', 'rules'])
+EXCLUSION_COUNTS = {f'{c} {n}': int((m & _exclude_mask).sum()) for c, n, d, m, on in EXCLUSION_RULES if on}
 if _exclude_mask.any():
-    print(f"R1: excluding {int(_exclude_mask.sum())} more respondent(s) as invalid "
-          f"({int((_flag_all_drugs & _exclude_mask).sum())} reported every hard drug, "
-          f"{int((_flag_contradiction & _exclude_mask).sum())} contradicted lifetime answers, "
-          f"{int((_flag_speeder & _exclude_mask).sum())} completed in under {MIN_COMPLETION_MINUTES} minutes, "
-          f"{int((_flag_time_order & _exclude_mask).sum())} reported past-30-day hard-drug use with no past-12-month use). "
-          f"See the _QA_flags.csv file saved next to the report.")
+    print(f"R1: excluding {int(_exclude_mask.sum())} respondent(s) as invalid: "
+          + ', '.join(f'{k} = {v}' for k, v in EXCLUSION_COUNTS.items() if v)
+          + " (a response can trigger more than one rule). See <report>_exclusion_log.csv.")
     removed_N += int(_exclude_mask.sum())
     clean = clean[~_exclude_mask].reset_index(drop=True)
+# Text for the report (Reliability section): how many responses each rule removed.
+_rule_bits = [f"{d} ({v})" for (c, n, d, m, on), v in
+              zip([r for r in EXCLUSION_RULES if r[4]], EXCLUSION_COUNTS.values()) if v]
+EXCLUSION_SUMMARY = ((f"The {int(_exclude_mask.sum())} excluded surveys were identified by these checks "
+                      f"(a survey can fail more than one): " + '; '.join(_rule_bits) + '.')
+                     if _exclude_mask.any() else 'No surveys failed the consistency checks.')
 # R5: for all remaining students, a past-30-day "Yes" implies a past-12-month "Yes".
 # Recode the 12-month answer so the 12-month tables, the 30-day tables and the
 # derived flags (pot_12m, vape_12m, ...) all count the same students.
@@ -2310,8 +2496,11 @@ def perceived_pot(grade):
     return thing
 
 def add_pot_30_to_df(df, Q):
-    nevertotal = clean[clean['pot_risk30_never']=='Never used cannabis']['kessler_cat_dep'].count()
-    last30total = clean[clean['pot_risk30_never']=='Cannabis use in last 30 days']['kessler_cat_dep'].count()
+    # C8: each table's base is the group members who ANSWERED this item (it was
+    # the depression item's count for every table, so the K10 and anxiety
+    # columns could not be reproduced).
+    nevertotal = clean[clean['pot_risk30_never']=='Never used cannabis'][Q].count()
+    last30total = clean[clean['pot_risk30_never']=='Cannabis use in last 30 days'][Q].count()
 
 
     neverusedpost_func = clean[clean['pot_risk30_never']=='Never used cannabis'][Q].value_counts().reset_index()
@@ -2407,119 +2596,95 @@ def create_bullet_point(df, surveryval, grade, per_timeline=None):
 
 
 
+##############################
+### C21-C24: charts are drawn at their FINAL size with the fonts wanted and
+### inserted at 100% (never shrunk in Word, which shrank the axis and legend
+### text too). Sizes from Part 3 of the ISB fix list.
+##############################
+CHART_SIZE_MTF = (5.4, 3.6)     # U.S. norm comparison charts (one page per measure)
+CHART_SIZE_PAIR = (4.7, 2.9)    # culture of use / school attitudes (two pairs per page)
+CHART_SIZE_K10 = (5.4, 3.6)     # Kessler charts (one table + chart per page)
+CHART_FONT_PT = 9
+GROUP_DISPLAY = {'High-risk (%)': 'Higher-risk', 'Low-risk (%)': 'Lower-risk', 'Non-drinker (%)': 'Non-drinkers',
+                 'High-risk': 'Higher-risk', 'Low-risk': 'Lower-risk', 'Non-drinker': 'Non-drinkers',
+                 'Cannabis use in last 30 days': 'Cannabis in past 30 days',
+                 'Never used cannabis': 'Never used cannabis',
+                 'Using substances to cope': 'Using substances to cope'}
+
+def _draw_bars(df_melt, x, y, hue, palette, save, size, xlabel, ylabel='Percentage (%)', rotate=0, order=None, hue_order=None,
+               legend_cols=4, legend_y=None):
+    import matplotlib.pyplot as _plt
+    with _plt.rc_context({'font.size': CHART_FONT_PT, 'axes.labelsize': CHART_FONT_PT,
+                          'xtick.labelsize': CHART_FONT_PT - 1, 'ytick.labelsize': CHART_FONT_PT - 1,
+                          'legend.fontsize': CHART_FONT_PT - 1}):
+        fig, ax = _plt.subplots(figsize=size)
+        sns.barplot(data=df_melt, x=x, y=y, hue=hue, palette=palette, ax=ax, order=order, hue_order=hue_order,
+                    errorbar=None)
+        ax.set_xlabel(xlabel); ax.set_ylabel(ylabel)
+        ax.set_ylim(0, max(10, min(100, (pd.to_numeric(df_melt[y], errors='coerce').max() or 0) * 1.15)))
+        for _s in ('top', 'right'):
+            ax.spines[_s].set_visible(False)
+        if rotate:
+            _plt.setp(ax.get_xticklabels(), rotation=rotate, ha='right')
+        _n_hue = df_melt[hue].nunique()
+        ax.legend(title=None, frameon=False, ncol=min(_n_hue, legend_cols), loc='upper center',
+                  bbox_to_anchor=(0.5, legend_y if legend_y is not None else (-0.22 if not rotate else -0.42)))
+        fig.tight_layout()
+        fig.patch.set_facecolor('white')
+        fig.savefig(save, dpi=300, facecolor='white')   # no bbox 'tight': keeps the exact size
+        _plt.close(fig)
+
 def bar_chart_it_up(df, save):
     palette={    'Total':'#1A63CD', 'Male':'#C9D2DA', 'Female':'#267EF2'}
     _all_grade_cols = ['8th', '8th MTF', '10th', '10th MTF', '12th', '12th MTF']
     _chart_cols = [c for c in _all_grade_cols if c in df.columns]
-    # No 8th graders took the survey: chart only the 8th MTF norm bar, not a
-    # misleading zero-height school bar.
+    # C24: no 8th graders took the survey -> no 8th-grade school bar AND no 8th MTF bar.
     if '8th' not in clean['grade_level'].values:
-        _chart_cols = [c for c in _chart_cols if c != '8th']
+        _chart_cols = [c for c in _chart_cols if not c.startswith('8th')]
     df_melt =df.melt(id_vars='Type', value_vars=_chart_cols)
-    df_melt['value'] = pd.to_numeric(df_melt['value'])
-    df_melt['grade'] = df_melt['variable'].str.split('th').str[0]
-    ax = sns.catplot(
-        x="variable",       # x variable name
-        y="value",       # y variable name
-        hue="Type",  # group variable name
-        data=df_melt,     # dataframe to plot
-        kind="bar",
-        palette = palette, aspect=13/10)
+    df_melt['value'] = pd.to_numeric(df_melt['value'], errors='coerce')
+    df_melt['variable'] = df_melt['variable'].str.replace(' MTF', ' U.S.', regex=False)
+    _draw_bars(df_melt, 'variable', 'value', 'Type', palette, save, CHART_SIZE_MTF, 'Grade',
+               hue_order=[t for t in ['Total', 'Male', 'Female'] if t in set(df_melt['Type'])])
 
-    ax.set(xlabel='Grade', ylabel='Percentage (%)')
-    
-
-    #p#lt.tight_layout()
-    #plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0)
-    plt.gcf().patch.set_facecolor('white')
-    plt.savefig(save, bbox_inches='tight', dpi=300, facecolor='white')
-    plt.close()
-    
 def bar_chart_it_up_2(df, save):
     palette={    'Total Agree':'#1A63CD', 'Total Disagree':'#C9D2DA'}
     # Chart only grades with actual respondents — an entered-but-absent grade
     # would otherwise show fabricated 0%-agree/0%-disagree bars.
     _data_grades = set(clean['grade_level'].dropna())
     _chart_grades_n = [g for g in grades_n if g.split(' (')[0] in _data_grades]
-    df_melt =df.melt(id_vars ='index', value_vars=_chart_grades_n )
-    df_melt['value'] = pd.to_numeric(df_melt['value'])
-    df_melt['grade'] = df_melt['Grade'].str.split(r'\(').str[0]
-    df_melt['Answer'] = df_melt['index']
-    ax = sns.catplot(
-        x="Grade",       # x variable name
-        y="value",       # y variable name
-        hue="Answer",  # group variable name
-        data=df_melt,     # dataframe to plot
-        kind="bar",
-        palette = palette, aspect=13/10)
+    df_melt =df.melt(id_vars ='index', value_vars=_chart_grades_n, var_name='GradeCol')
+    df_melt['value'] = pd.to_numeric(df_melt['value'], errors='coerce')
+    # C22: x-axis labels are the grade only ("9th"), never "9th (N)".
+    df_melt['Grade'] = df_melt['GradeCol'].str.replace(r'\s*\(N\)', '', regex=True)
+    df_melt['Answer'] = df_melt['index'].replace({'Total Agree': 'Agree', 'Total Disagree': 'Disagree'})
+    _draw_bars(df_melt, 'Grade', 'value', 'Answer', {'Agree': palette['Total Agree'], 'Disagree': palette['Total Disagree']},
+               save, CHART_SIZE_PAIR, 'Grade')
 
-    ax.set(xlabel='Grade', ylabel='Percentage (%)')
-
-    #plt.show()
-    
-
-    plt.gcf().patch.set_facecolor('white')
-    plt.savefig(save, bbox_inches='tight', dpi=300, facecolor='white')
-    plt.close()
-    
-    
 def bar_chart_it_up_3(df, save):
     palette={    'Liked a lot':'#1A63CD', 'Kind of liked':'#C9D2DA', 'Did not like':'#267EF2', 'Hated': '#838383'}
     # Chart only grades with actual respondents (see bar_chart_it_up_2).
     _data_grades = set(clean['grade_level'].dropna())
     vv = [g + ' (%)' for g in ['7th', '8th', '9th', '10th', '11th', '12th'] if g in _data_grades]
     df_melt =df[['Response'] + vv].melt(id_vars ='Response', value_vars=vv)
-    df_melt['value'] = pd.to_numeric(df_melt['value'].str.split('(%)').str[0])
-    df_melt['Grade'] =df_melt['variable'].str.split(r'\(').str[0]
+    df_melt['value'] = pd.to_numeric(df_melt['value'].astype(str).str.replace('%', '', regex=False), errors='coerce')
+    df_melt['Grade'] =df_melt['variable'].str.replace(r'\s*\(%\)', '', regex=True)
+    _draw_bars(df_melt, 'Grade', 'value', 'Response', palette, save, CHART_SIZE_PAIR, 'Grade',
+               hue_order=[r for r in palette if r in set(df_melt['Response'])])
 
-    ax = sns.catplot(
-        x="Grade",       # x variable name
-        y="value",       # y variable name
-        hue="Response",  # group variable name
-        data=df_melt,     # dataframe to plot
-        kind="bar",
-        palette = palette, aspect=13/10)
-
-    #ax.set(xlabel='Grade', ylabel='Percentage (%)')
-
-    #plt.show()
-    
-    plt.gcf().patch.set_facecolor('white')
-    plt.savefig(save, bbox_inches='tight', dpi=300, facecolor='white')
-    plt.close()
-    
 def bar_chart_it_up_4(df, save, palette):
-    palette=palette
+    _cols = ['High-risk (%)', 'Low-risk (%)', 'Non-drinker (%)',
+             'Cannabis use in last 30 days', 'Never used cannabis', 'Using substances to cope']
+    df_melt =df[['Response'] + _cols].melt(id_vars ='Response', value_vars=_cols)
+    df_melt['value'] = pd.to_numeric(df_melt['value'], errors='coerce')
+    # C23: "Higher-risk" / "Lower-risk" everywhere, matching the text and table headers.
+    import textwrap as _tw
+    df_melt['variable'] = df_melt['variable'].map(lambda v: _tw.fill(GROUP_DISPLAY.get(v, v), 13))
+    _resp = list(dict.fromkeys(df_melt['Response']))
+    _draw_bars(df_melt, 'variable', 'value', 'Response', dict(zip(_resp, palette)), save, CHART_SIZE_K10, 'Group',
+               hue_order=_resp, legend_cols=2, legend_y=-0.3)
 
-    
-    
-    df_melt =df[['Response','High-risk (%)',
-       'Low-risk (%)', 'Non-drinker (%)', 
-       'Cannabis use in last 30 days','Never used cannabis', 
-       'Using substances to cope']].melt(id_vars ='Response', value_vars=['High-risk (%)',
-       'Low-risk (%)', 'Non-drinker (%)', 
-       'Cannabis use in last 30 days','Never used cannabis', 
-       'Using substances to cope'])
 
-
-    ax = sns.catplot(
-        x="variable",       # x variable name
-        y="value",       # y variable name
-        hue="Response",  # group variable name
-        data=df_melt,     # dataframe to plot
-        kind="bar",
-        palette = palette, aspect=13/10)
-
-    ax.set_xticklabels(rotation=30)
-    ax.set(xlabel='Group', ylabel='Percentage (%)')
-
-    #plt.show()
-    
-    plt.gcf().patch.set_facecolor('white')
-    plt.savefig(save, bbox_inches='tight', dpi=300, facecolor='white')
-    plt.close()
-    
-    
 def ever_by_age(df, gradecol):
     """CORRECTED: Round result, return _ItemableValue for .item() compat."""
     if gradecol in df.columns:
@@ -3061,34 +3226,18 @@ for index, row in grade_by_risk.iterrows():
     if row['High-risk (N)'] > 0:
         highrisk_by_grade[row['Grade']] = int(row['High-risk (N)'])
 
-if len(highrisk_by_grade) == 0:
-    highrisk_comparison = ''
-elif len(highrisk_by_grade) == 1:
-    grade_name = list(highrisk_by_grade.keys())[0]
-    highrisk_comparison = f'All of these students are in {grade_name} grade.'
-else:
-    # Sort grades by count descending
-    sorted_grades = sorted(highrisk_by_grade.items(), key=lambda x: x[1], reverse=True)
-    top_grade, top_count = sorted_grades[0]
-    second_grade, second_count = sorted_grades[1]
-    fraction = top_count / totalhighrisk
-    # B5: words come from the numbers ("majority" only over 50%,
-    # "more than double" only when the ratio is above 2).
-    if fraction > 0.5:
-        proportion_word = 'a majority'
-    elif fraction >= 0.45:
-        proportion_word = 'about half'
-    else:
-        proportion_word = f'{round(fraction*100)}%'
-    if second_count > 0 and top_count / second_count > 2:
-        ratio_phrase = f'more than double the number of higher-risk drinkers in {top_grade} grade ({top_count}) as in {second_grade} grade ({second_count})'
-    elif second_count > 0 and top_count == 2 * second_count:
-        ratio_phrase = f'twice as many higher-risk drinkers in {top_grade} grade ({top_count}) as in {second_grade} grade ({second_count})'
-    elif second_count > 0:
-        ratio_phrase = f'{top_count} higher-risk drinkers in {top_grade} grade compared to {second_count} in {second_grade} grade'
-    else:
-        ratio_phrase = f'{top_count} higher-risk drinkers in {top_grade} grade'
-    highrisk_comparison = f'Of these students, {proportion_word} are in {top_grade} grade and there are {ratio_phrase}.'
+def _count_by_grade_sentence(counts):
+    """C11: name the count for EVERY grade in grade order, e.g. "1 is in 10th grade,
+    3 are in 11th grade, and 3 are in 12th grade." No "top two" comparison."""
+    _parts = [f"{n} {'is' if n == 1 else 'are'} in {g} grade"
+              for g, n in sorted(counts.items(), key=lambda kv: _grade_num(kv[0]))]
+    if not _parts:
+        return ''
+    if len(_parts) == 1:
+        return f"All of these students are in {sorted(counts)[0]} grade."
+    return 'Of these students, ' + _join_and(_parts) + '.'
+
+highrisk_comparison = _count_by_grade_sentence(highrisk_by_grade)
 
 totalstudents = age_at_first_drinkdf['Count (N)'].sum()
 perc_high_riskall = round((totalhighrisk/totalstudents)*100,1)
@@ -3537,7 +3686,10 @@ _lr_sorted = highlowrisk_consequence_sub.sort_values(
     key=lambda _s: pd.to_numeric(_s.astype(str).str.replace('%', '', regex=False), errors='coerce'))
 mostrpopular_lowriskconsequence =_lr_sorted.head(1)['Qtext'].item()
 mostrpopular_lowriskconsequenceperc = _lr_sorted.head(1)['Low-risk (%)'].item()
-highrisk_twice_risk =highlowrisk_consequence_sub[highlowrisk_consequence_sub['High-risk (%)']>=(highlowrisk_consequence_sub['Low-risk (%)'])*2]
+# C6: counted from the table values: higher-risk >= 2 x lower-risk AND higher-risk > 0
+# (0.0% vs 0.0% used to count as "double or greater").
+highrisk_twice_risk =highlowrisk_consequence_sub[(highlowrisk_consequence_sub['High-risk (%)']>=(highlowrisk_consequence_sub['Low-risk (%)'])*2)
+                                                 & (highlowrisk_consequence_sub['High-risk (%)'] > 0)]
 len_highrisk_twice_risk= len(highrisk_twice_risk)
 
 
@@ -4876,11 +5028,50 @@ for Q in Kessler_Qs:
 # In[53]:
 
 
-clean['kessler_sum'] = clean[['tired_k', 'nervous_k', 'no_calm_k', 'hopless_k', 'restless_k',
-       'no_sit_still_k', 'depressed_k', 'effort_k', 'cheer_k', 'worthless_k']].sum(axis=1)
+##############################
+### C8: Kessler (K10) scoring, documented.
+### Items are scored None of the time = 1, A little = 2, Some = 3, Most = 4,
+### All of the time = 5 (grade_ks above).
+###   Full K10 (10 items, range 10-50): 10-19 psychologically well,
+###     20-24 mild, 25-29 moderate, 30-50 severe psychological distress.
+###   Depression subscale (6 items: tired, hopeless, depressed, everything an
+###     effort, so sad nothing could cheer you up, worthless; range 6-30):
+###     "High depression" = 20 or more (19 or less is "Low").
+###   Anxiety subscale (4 items: nervous, so nervous nothing could calm you down,
+###     restless, so restless you could not sit still; range 4-20):
+###     "High anxiety" = 13 or more (12 or less is "Low").
+### Missing items: a student who skipped ONE item of a scale gets that item
+### filled with the mean of their other items on the same scale (prorated);
+### a student who skipped MORE than one item is not scored on that scale and is
+### left out of that scale's table (previously missing items counted as 0,
+### which pushed students towards "well"/"low" and made the tables impossible
+### to reproduce). The same text is printed in the report (K10_METHOD_TEXT).
+##############################
+K10_MAX_MISSING = 1
+_K10_ALL = ['tired_k', 'nervous_k', 'no_calm_k', 'hopless_k', 'restless_k',
+            'no_sit_still_k', 'depressed_k', 'effort_k', 'cheer_k', 'worthless_k']
+_K10_DEP = ['tired_k', 'hopless_k', 'depressed_k', 'effort_k', 'cheer_k', 'worthless_k']
+_K10_ANX = ['nervous_k', 'no_calm_k', 'restless_k', 'no_sit_still_k']
+
+def k10_scale_sum(items):
+    _x = clean[items]
+    _answered = _x.notna().sum(axis=1)
+    _prorated = _x.mean(axis=1) * len(items)
+    return _prorated.where(_answered >= len(items) - K10_MAX_MISSING).round(0)
+
+clean['kessler_sum'] = k10_scale_sum(_K10_ALL)
+K10_METHOD_TEXT = (
+    "Kessler (K10) scoring: each of the 10 items is scored from 1 (“none of the time”) to 5 (“all of the time”), "
+    "giving a total of 10 to 50. Totals of 10-19 are “psychologically well,” 20-24 “mild,” 25-29 “moderate” and "
+    "30 or more “severe” psychological distress. The depression score adds the 6 depression items (6-30; 20 or more "
+    "is “high”) and the anxiety score adds the 4 anxiety items (4-20; 13 or more is “high”). A student who skipped "
+    "one item of a scale is scored from the average of their other items on that scale; a student who skipped more "
+    "than one item is left out of that scale’s table.")
 
 
 def kessler_slice(df):
+    if pd.isna(df['kessler_sum']):
+        return np.nan          # C8: not scored (more than one item skipped)
     if df['kessler_sum'] <= 19:
         return 'psychologically well'
     if (df['kessler_sum'] >= 20) & (df['kessler_sum'] <= 24) :
@@ -4892,14 +5083,22 @@ def kessler_slice(df):
     
 clean['kessler_cat'] = clean.apply(kessler_slice, axis=1)
 
-clean['kessler_sum_depression'] =  clean[['tired_k','hopless_k','depressed_k', 'effort_k', 'cheer_k', 'worthless_k']].sum(axis=1)
-clean['kessler_sum_anxiety'] =  clean[[ 'nervous_k', 'no_calm_k', 'restless_k','no_sit_still_k']].sum(axis=1)
+clean['kessler_sum_depression'] = k10_scale_sum(_K10_DEP)
+clean['kessler_sum_anxiety'] = k10_scale_sum(_K10_ANX)
 
 
-clean['kessler_cat_dep'] = np.where(clean['kessler_sum_depression']<= 19, "K10-Low dep", "K10-High dep" )
+clean['kessler_cat_dep'] = np.select([clean['kessler_sum_depression'] <= 19, clean['kessler_sum_depression'] >= 20],
+                                     ["K10-Low dep", "K10-High dep"], default=None)
 # Anxiety must be categorized on the ANXIETY subscale sum (4 items, low <= 12);
 # it was thresholding the depression sum, overstating High-anxiety counts.
-clean['kessler_cat_anx'] = np.where(clean['kessler_sum_anxiety']<= 12, "K10-Low anx", "K10-High anx" )
+clean['kessler_cat_anx'] = np.select([clean['kessler_sum_anxiety'] <= 12, clean['kessler_sum_anxiety'] >= 13],
+                                     ["K10-Low anx", "K10-High anx"], default=None)
+clean['kessler_cat_dep'] = clean['kessler_cat_dep'].where(clean['kessler_cat_dep'].notna(), np.nan)
+clean['kessler_cat_anx'] = clean['kessler_cat_anx'].where(clean['kessler_cat_anx'].notna(), np.nan)
+_k10_unscored = {k: int(clean[c].isna().sum()) for k, c in
+                 [('K10', 'kessler_cat'), ('depression', 'kessler_cat_dep'), ('anxiety', 'kessler_cat_anx')]}
+if any(_k10_unscored.values()):
+    logger.warning(f"C8: students not scored (more than {K10_MAX_MISSING} item skipped): {_k10_unscored}")
 
 
 # In[54]:
@@ -4938,16 +5137,16 @@ total_cope = len(_cope_pop)
 if total_cope < MIN_CELL_N:
     logger.warning(f"B9 SMALL BASE: 'Using substances to cope' column has only {total_cope} students")
 
-lowdepcope = pct(len(_cope_pop[ (_cope_pop['kessler_cat_dep']=='K10-Low dep')]), total_cope)
-highdepcope = pct(len(_cope_pop[ (_cope_pop['kessler_cat_dep']=='K10-High dep')]), total_cope)
+lowdepcope = pct(len(_cope_pop[ (_cope_pop['kessler_cat_dep']=='K10-Low dep')]), int(_cope_pop['kessler_cat_dep'].notna().sum()))   # C8: scored students only
+highdepcope = pct(len(_cope_pop[ (_cope_pop['kessler_cat_dep']=='K10-High dep')]), int(_cope_pop['kessler_cat_dep'].notna().sum()))   # C8: scored students only
 
-lowanxcope = pct(len(_cope_pop[ (_cope_pop['kessler_cat_anx']=='K10-Low anx')]), total_cope)
-highanxcope = pct(len(_cope_pop[ (_cope_pop['kessler_cat_anx']=='K10-High anx')]), total_cope)
+lowanxcope = pct(len(_cope_pop[ (_cope_pop['kessler_cat_anx']=='K10-Low anx')]), int(_cope_pop['kessler_cat_anx'].notna().sum()))   # C8: scored students only
+highanxcope = pct(len(_cope_pop[ (_cope_pop['kessler_cat_anx']=='K10-High anx')]), int(_cope_pop['kessler_cat_anx'].notna().sum()))   # C8: scored students only
 
-psych_well = pct(len(_cope_pop[ (_cope_pop['kessler_cat']=="psychologically well")]), total_cope)
-mild_diss = pct(len(_cope_pop[ (_cope_pop['kessler_cat']=="mild psychological distress")]), total_cope)
-mod_diss = pct(len(_cope_pop[ (_cope_pop['kessler_cat']=="moderate psychological distress")]), total_cope)
-sev_diss = pct(len(_cope_pop[ (_cope_pop['kessler_cat']=="severe psychological distress")]), total_cope)
+psych_well = pct(len(_cope_pop[ (_cope_pop['kessler_cat']=="psychologically well")]), int(_cope_pop['kessler_cat'].notna().sum()))   # C8: scored students only
+mild_diss = pct(len(_cope_pop[ (_cope_pop['kessler_cat']=="mild psychological distress")]), int(_cope_pop['kessler_cat'].notna().sum()))   # C8: scored students only
+mod_diss = pct(len(_cope_pop[ (_cope_pop['kessler_cat']=="moderate psychological distress")]), int(_cope_pop['kessler_cat'].notna().sum()))   # C8: scored students only
+sev_diss = pct(len(_cope_pop[ (_cope_pop['kessler_cat']=="severe psychological distress")]), int(_cope_pop['kessler_cat'].notna().sum()))   # C8: scored students only
 
 depression_substance_k10['Using substances to cope'] = [lowdepcope, highdepcope]
 anxiety_substance_k10['Using substances to cope'] = [lowanxcope, highanxcope]
@@ -5835,93 +6034,93 @@ sns.set(font="Georgia")
 import seaborn as sns
 import matplotlib.pyplot as plt
 from docxtpl import InlineImage
-from docx.shared import Mm
+from docx.shared import Mm, Inches
 
 
 bar_chart_it_up(alcohollifetumetable, os.path.join(chart_dir, 'alcol_melt_chart.png'))
-alcol_melt_chart =  InlineImage(doc, os.path.join(chart_dir, 'alcol_melt_chart.png'), width=Mm(150))
+alcol_melt_chart =  InlineImage(doc, os.path.join(chart_dir, 'alcol_melt_chart.png'), width=Inches(CHART_SIZE_MTF[0]))
 
 bar_chart_it_up(alcoholl12monthtstable, os.path.join(chart_dir, 'alcohol12monthschart.png'))
-alcohol12monthschart =  InlineImage(doc, os.path.join(chart_dir, 'alcohol12monthschart.png'), width=Mm(150))
+alcohol12monthschart =  InlineImage(doc, os.path.join(chart_dir, 'alcohol12monthschart.png'), width=Inches(CHART_SIZE_MTF[0]))
 
 bar_chart_it_up(alcoholl30daysstable, os.path.join(chart_dir, 'alcohol30monthschart.png'))
-alcohol30monthschart =  InlineImage(doc, os.path.join(chart_dir, 'alcohol30monthschart.png'), width=Mm(150))
+alcohol30monthschart =  InlineImage(doc, os.path.join(chart_dir, 'alcohol30monthschart.png'), width=Inches(CHART_SIZE_MTF[0]))
 
 bar_chart_it_up(pot_lifetime_MTF, os.path.join(chart_dir, 'lifetimepotchart.png'))
-lifetimepotchart =  InlineImage(doc, os.path.join(chart_dir, 'lifetimepotchart.png'), width=Mm(150))
+lifetimepotchart =  InlineImage(doc, os.path.join(chart_dir, 'lifetimepotchart.png'), width=Inches(CHART_SIZE_MTF[0]))
 
 bar_chart_it_up(pot_12_MTF, os.path.join(chart_dir, 'annualpotchart.png'))
-annualpotchart =  InlineImage(doc, os.path.join(chart_dir, 'annualpotchart.png'), width=Mm(150))
+annualpotchart =  InlineImage(doc, os.path.join(chart_dir, 'annualpotchart.png'), width=Inches(CHART_SIZE_MTF[0]))
 
 bar_chart_it_up(pot_30_MTF, os.path.join(chart_dir, 'thirtypotchart.png'))
-thirtypotchart =  InlineImage(doc, os.path.join(chart_dir, 'thirtypotchart.png'), width=Mm(150))
+thirtypotchart =  InlineImage(doc, os.path.join(chart_dir, 'thirtypotchart.png'), width=Inches(CHART_SIZE_MTF[0]))
 
 bar_chart_it_up(VAPE_12_MTF, os.path.join(chart_dir, 'annualvapechart.png'))
-annualvapechart =  InlineImage(doc, os.path.join(chart_dir, 'annualvapechart.png'), width=Mm(150))
+annualvapechart =  InlineImage(doc, os.path.join(chart_dir, 'annualvapechart.png'), width=Inches(CHART_SIZE_MTF[0]))
 
 bar_chart_it_up(VAPE_30_MTF, os.path.join(chart_dir, 'thirtyvapechart.png'))
-thirtyvapechart =  InlineImage(doc, os.path.join(chart_dir, 'thirtyvapechart.png'), width=Mm(150))
+thirtyvapechart =  InlineImage(doc, os.path.join(chart_dir, 'thirtyvapechart.png'), width=Inches(CHART_SIZE_MTF[0]))
 
 bar_chart_it_up_2(socialatmo, os.path.join(chart_dir, 'socialatmochart.png'))
-socialatmochart =  InlineImage(doc, os.path.join(chart_dir, 'socialatmochart.png'), width=Mm(150))
+socialatmochart =  InlineImage(doc, os.path.join(chart_dir, 'socialatmochart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 
 bar_chart_it_up_2(pressured_table, os.path.join(chart_dir, 'pressure_chart.png'))
-pressure_chart =  InlineImage(doc, os.path.join(chart_dir, 'pressure_chart.png'), width=Mm(150))
+pressure_chart =  InlineImage(doc, os.path.join(chart_dir, 'pressure_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_2(own_decision_table, os.path.join(chart_dir, 'owddesc_chart.png'))
-owddesc_chart =  InlineImage(doc, os.path.join(chart_dir, 'owddesc_chart.png'), width=Mm(150))
+owddesc_chart =  InlineImage(doc, os.path.join(chart_dir, 'owddesc_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_2(respect_table, os.path.join(chart_dir, 'respect_chart.png'))
-respect_chart =  InlineImage(doc, os.path.join(chart_dir, 'respect_chart.png'), width=Mm(150))
+respect_chart =  InlineImage(doc, os.path.join(chart_dir, 'respect_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 
 bar_chart_it_up_2(abstain_table, os.path.join(chart_dir, 'abstain_chart.png'))
-abstain_chart =  InlineImage(doc, os.path.join(chart_dir, 'abstain_chart.png'), width=Mm(150))
+abstain_chart =  InlineImage(doc, os.path.join(chart_dir, 'abstain_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_2(easytomake_table, os.path.join(chart_dir, 'easytomake_table_chart.png'))
-easytomake_table_chart =  InlineImage(doc, os.path.join(chart_dir, 'easytomake_table_chart.png'), width=Mm(150))
+easytomake_table_chart =  InlineImage(doc, os.path.join(chart_dir, 'easytomake_table_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 
 bar_chart_it_up_2(assume_table, os.path.join(chart_dir, 'assume_tablechart.png'))
-assume_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'assume_tablechart.png'), width=Mm(150))
+assume_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'assume_tablechart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_2(light_table, os.path.join(chart_dir, 'light_tablechart.png'))
-light_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'light_tablechart.png'), width=Mm(150))
+light_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'light_tablechart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_2(heavy_table, os.path.join(chart_dir, 'heavy_table_chart.png'))
-heavy_table_chart =  InlineImage(doc, os.path.join(chart_dir, 'heavy_table_chart.png'), width=Mm(150))   
+heavy_table_chart =  InlineImage(doc, os.path.join(chart_dir, 'heavy_table_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))   
 
 bar_chart_it_up_2(valued_table, os.path.join(chart_dir, 'valued_table_chart.png'))
-valued_table_chart =  InlineImage(doc, os.path.join(chart_dir, 'valued_table_chart.png'), width=Mm(150)) 
+valued_table_chart =  InlineImage(doc, os.path.join(chart_dir, 'valued_table_chart.png'), width=Inches(CHART_SIZE_PAIR[0])) 
 
 bar_chart_it_up_2(aca_table, os.path.join(chart_dir, 'aca_table_chart.png'))
-aca_table_chart  =  InlineImage(doc, os.path.join(chart_dir, 'aca_table_chart.png'), width=Mm(150))                              
+aca_table_chart  =  InlineImage(doc, os.path.join(chart_dir, 'aca_table_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))                              
 
 bar_chart_it_up_2(staff_table, os.path.join(chart_dir, 'staff_tablechart.png'))
-staff_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'staff_tablechart.png'), width=Mm(150))
+staff_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'staff_tablechart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_2(sincere_table, os.path.join(chart_dir, 'sincere_tablechart.png'))
-sincere_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'sincere_tablechart.png'), width=Mm(150))
+sincere_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'sincere_tablechart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_2(care_table, os.path.join(chart_dir, 'care_tablechart.png'))
-care_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'care_tablechart.png'), width=Mm(150))
+care_tablechart =  InlineImage(doc, os.path.join(chart_dir, 'care_tablechart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_2(aca2_table, os.path.join(chart_dir, 'aca2_table_chart.png'))
-aca2_table_chart =  InlineImage(doc, os.path.join(chart_dir, 'aca2_table_chart.png'), width=Mm(150))
+aca2_table_chart =  InlineImage(doc, os.path.join(chart_dir, 'aca2_table_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 school12_attitudes_chart =bar_chart_it_up_3(school12_grade, os.path.join(chart_dir, 'school12_attitudes_chart.png'))
-school12_attitudes_chart =  InlineImage(doc, os.path.join(chart_dir, 'school12_attitudes_chart.png'), width=Mm(150))
+school12_attitudes_chart =  InlineImage(doc, os.path.join(chart_dir, 'school12_attitudes_chart.png'), width=Inches(CHART_SIZE_PAIR[0]))
 
 bar_chart_it_up_4(depression_substance_k10, os.path.join(chart_dir, 'K10_dep.png'), ['#1A63CD', '#C9D2DA'])
-K10_dep_CHART =  InlineImage(doc, os.path.join(chart_dir, 'K10_dep.png'), width=Mm(150))
+K10_dep_CHART =  InlineImage(doc, os.path.join(chart_dir, 'K10_dep.png'), width=Inches(CHART_SIZE_K10[0]))
 
 bar_chart_it_up_4(anxiety_substance_k10, os.path.join(chart_dir, 'K10_anx.png'), ['#1A63CD', '#C9D2DA'])
-K10_anx_CHART =  InlineImage(doc, os.path.join(chart_dir, 'K10_anx.png'), width=Mm(150))
+K10_anx_CHART =  InlineImage(doc, os.path.join(chart_dir, 'K10_anx.png'), width=Inches(CHART_SIZE_K10[0]))
 
 
 bar_chart_it_up_4(all_KS_substance_k10, os.path.join(chart_dir, 'K10_ALL.png'), ['#1A63CD', '#C9D2DA', '#267EF2', '#838383'])
-K10_ALL_CHART =  InlineImage(doc, os.path.join(chart_dir, 'K10_ALL.png'), width=Mm(150))
+K10_ALL_CHART =  InlineImage(doc, os.path.join(chart_dir, 'K10_ALL.png'), width=Inches(CHART_SIZE_K10[0]))
 
 
 # In[73]:
@@ -6472,6 +6671,215 @@ for _grp in ['Cannabis use in last 30 days', 'Never used cannabis']:
 _yp = int(clean['yearlypot'].notna().sum())
 if 0 < _yp < MIN_CELL_N:
     logger.warning(f"B9 SMALL GROUP: yearly-or-more cannabis users ({BODY_GROUP_LABEL}) has only {_yp} students")
+
+
+##############################################################################
+### ISB FIXES (Nov 2026): narrative rules C4, C5, C10, C12-C15, C17, C19, C25
+### and the methodology text for C7/C8. Everything is passed to the template
+### through QA_CONTEXT, which overrides older values of the same name.
+##############################################################################
+def _q(key, lower_first=True):
+    """C19: quoted item wording from the survey file itself."""
+    t = QUESTION_TEXT.get(key, '').strip().rstrip('.').strip()
+    return (t[0].lower() + t[1:]) if (t and lower_first) else t
+
+# C24: template sections that only make sense with 8th graders
+QA_CONTEXT['has_8th'] = '8th' in _grades_seq
+
+# ---------- C25: survey date and report date, both labelled ----------
+QA_CONTEXT['report_date'] = REPORT_DATE
+QA_CONTEXT['date_today'] = REPORT_DATE
+QA_CONTEXT['date_survey'] = date_survey
+
+# ---------- C10: grade lists only include grades that have respondents ----------
+_cmp_present = [g for g in ['7th', '8th', '10th', '12th'] if g in _grades_seq and g != '7th']
+QA_CONTEXT['cmp_grades_text'] = _join_and(_cmp_present)
+QA_CONTEXT['cmp_grades_title'] = f"Comparison between U.S. Norms and {School} {_join_and(_cmp_present)} Graders"
+_gnums = [g[:-2] for g in _grades_seq]
+QA_CONTEXT['prettygrades'] = (f'{", ".join(_gnums[:-1])} and {_gnums[-1]}' if len(_gnums) > 1 else
+                              (_gnums[0] if _gnums else prettygrades))
+
+# ---------- C4: Culture of Use overall agree, ONE computation, answered base ----------
+def _agree_share(df_grade, glist, name):
+    _ncols = [f'{g} (N)' for g in glist if f'{g} (N)' in df_grade.columns]
+    _c = df_grade[_ncols].apply(pd.to_numeric, errors='coerce').fillna(0)
+    _agree = _c[df_grade['Response'].isin(['Agree', 'Strongly agree']).values].sum().sum()
+    return pct(_agree, _c.sum().sum(), name, f'students in {", ".join(glist)} who answered')
+_upper = [g for g in ['9th', '10th', '11th', '12th'] if g in _grades_seq]
+_lower = [g for g in ['7th', '8th'] if g in _grades_seq]
+ninto12thsocial_atmocountagree_perc = _agree_share(AgreeDisagree_answers_grade[0], _upper, 'culture: social atmosphere agree, 9th-12th')
+ninto12thpressured_bygradecountagree_perc = _agree_share(AgreeDisagree_answers_grade[1], _upper, 'culture: pressured agree, 9th-12th')
+QA_CONTEXT['ninto12thsocial_atmocountagree_perc'] = ninto12thsocial_atmocountagree_perc
+QA_CONTEXT['ninto12thpressured_bygradecountagree_perc'] = ninto12thpressured_bygradecountagree_perc
+if _lower:
+    QA_CONTEXT['seventhand8thsocial_atmocountagree_perc'] = _agree_share(AgreeDisagree_answers_grade[0], _lower, 'culture: social atmosphere agree, 7th-8th')
+    QA_CONTEXT['seventhand8thpressured_bygradecountagree_perc'] = _agree_share(AgreeDisagree_answers_grade[1], _lower, 'culture: pressured agree, 7th-8th')
+QA_CONTEXT['social_atmo_df_yes_perc'] = _agree_share(AgreeDisagree_answers_grade[0], _grades_seq, 'culture: social atmosphere agree, all grades')
+QA_CONTEXT['pressured_df_yes_perc'] = _agree_share(AgreeDisagree_answers_grade[1], _grades_seq, 'culture: pressured agree, all grades')
+
+# ---------- C5: "use less than the U.S. average on X% of substances" ----------
+# One classifier (norm_verdict, one-student margin) feeds BOTH the highlight
+# box and this sentence. Only substances with a U.S. norm count.
+def _below_share(df, g, period):
+    if g not in _grades_seq or not len(df):
+        return '-'
+    _m = df[pd.to_numeric(df['MTF'], errors='coerce').notna()]
+    _v = [norm_verdict(pd.to_numeric(r['school'], errors='coerce'), pd.to_numeric(r['MTF'], errors='coerce'), grade_size(g))
+          for _, r in _m.iterrows()]
+    if not _v:
+        return '-'
+    _b = sum(v == 'below' for v in _v)
+    _p = pct(_b, len(_v), f'{g} {period}: substances below U.S. norms', f'{g} substances with a U.S. norm')
+    return f"{_p._num()}% ({_b} of {len(_v)})"
+for _key, _df, _g, _per in [('eighthbelowmeasure12', ALLSUBSTANCE8th_12_MTF, '8th', '12-month'),
+                            ('tenthbelowmeasure', ALLSUBSTANCE10th_12_MTF, '10th', '12-month'),
+                            ('twelvebelowmeasure', ALLSUBSTANCE12th_12_MTF, '12th', '12-month'),
+                            ('eighthbelowmeasure30', ALLSUBSTANCE8th_30_MTF, '8th', '30-day'),
+                            ('tenthbelowmeasure_30', ALLSUBSTANCE10th_30_MTF, '10th', '30-day'),
+                            ('twelvebelowmeasure_30', ALLSUBSTANCE12th_30_MTF, '12th', '30-day')]:
+    QA_CONTEXT[_key] = _below_share(_df, _g, _per)
+
+# ---------- C12: "risk factors cluster" examples only where the gap is real ----------
+_SUB_WORDS = {'cigarettes': 'cigarettes', 'vapes': 'electronic vaporizers', 'smokeless': 'smokeless tobacco',
+              'pot': 'cannabis', 'ecstasy': 'ecstasy', 'heroin': 'heroin', 'narcotics': 'narcotics not prescribed to them',
+              'amphetamines': 'amphetamines not prescribed to them', 'sedatives': 'sedatives not prescribed to them',
+              'methamphetamine': 'methamphetamine', 'cocaine': 'cocaine', 'lsd': 'LSD', 'hallucinogen': 'other hallucinogens',
+              'inhalants': 'inhalants', 'steroids': 'steroids not prescribed to them', 'cold': 'over-the-counter drugs'}
+_hr_n = int((clean['drinker_risk_10_12'] == 'High-risk').sum())
+_one_hr = (100.0 / _hr_n * MIN_STUDENT_GAP) if _hr_n else 100.0
+_cluster = []
+for _qq in [q for q in YNQs if q.endswith('_12') and q != 'use_alcohol_12']:
+    _yes = lambda ser: ser.eq('Yes')
+    _h = group_share(_qq, _yes, group='High-risk')
+    _l = group_share(_qq, _yes, group='Low-risk')
+    _nd = group_share(_qq, _yes, group='Non-drinker')
+    _all = pct(int((clean['grade_level'].isin(BODY_GROUP_GRADES) & clean[_qq].eq('Yes')).sum()),
+               int((clean['grade_level'].isin(BODY_GROUP_GRADES) & clean[_qq].notna()).sum()))
+    if '' in (_h, _l, _nd):
+        continue
+    _gap = float(_h) - max(float(_l), float(_nd))
+    if _gap > _one_hr:     # more than one higher-risk student's worth of difference
+        _cluster.append((_gap, _qq.split('_')[1], _h, _l, _nd, _all))
+_cluster.sort(key=lambda t: -t[0])
+QA_CONTEXT['cluster_examples'] = [
+    f"{fmt_pct(h)} of “higher-risk” drinkers have used {_SUB_WORDS.get(s, s)} in the past 12 months, compared with "
+    f"{fmt_pct(l)} of “lower-risk” drinkers, {fmt_pct(nd)} of “non-drinkers” and {fmt_pct(a)} of all {BODY_GROUP_LABEL} graders."
+    for _, s, h, l, nd, a in _cluster[:4]]
+_n_subs = len([q for q in YNQs if q.endswith('_12') and q != 'use_alcohol_12'])
+if not _hr_n:
+    QA_CONTEXT['clustering_sentence'] = "There are no “higher-risk” drinkers in these grades, so no comparison is made."
+elif _cluster:
+    QA_CONTEXT['clustering_sentence'] = (
+        f"These findings show how risk factors can “cluster.” For {len(_cluster)} of {_n_subs} substances, a larger share "
+        f"of “higher-risk” drinkers than of “lower-risk” drinkers and “non-drinkers” used the substance in the past 12 "
+        f"months, by more than one student’s worth of difference. For example:")
+else:
+    QA_CONTEXT['clustering_sentence'] = (
+        f"In the {School} results, no substance was used in the past 12 months by a clearly larger share of “higher-risk” "
+        f"drinkers than of “lower-risk” drinkers and “non-drinkers” (a difference of more than one student).")
+
+# ---------- C13: say how many answered when it differs from the group size ----------
+_n_where = len(_where)
+QA_CONTEXT['circumstances_lead'] = (
+    f"Of the {_n_where} students who drank within the past 30 days and answered this question:" if _n_where != _n30 else
+    f"Of the {_n30} students who have had alcohol within the past 30 days:")
+
+# ---------- C14: Culture of Use paragraph, framing word from the data ----------
+_easy = _agree_all(AgreeDisagree_answers[2]); _own = _agree_all(AgreeDisagree_answers[4])
+_resp = _agree_all(AgreeDisagree_answers[5]); _fit_dis = round(100 - float(_agree_all(AgreeDisagree_answers[6])), 1)
+_supportive = [float(v) for v in (_easy, _own, _resp, _fit_dis) if v != '']
+if _supportive and min(_supportive) > 50:
+    _frame = 'largely supportive'
+elif _supportive and max(_supportive) < 50:
+    _frame = 'largely unsupportive'
+else:
+    _frame = 'mixed'
+_light_dis = pct(*[pd.to_numeric(AgreeDisagree_answers[7]['Count (N)'], errors='coerce').fillna(0)[
+                       AgreeDisagree_answers[7]['Response'].isin(['Disagree', 'Strongly disagree']).values].sum(),
+                   pd.to_numeric(AgreeDisagree_answers[7]['Count (N)'], errors='coerce').fillna(0).sum()],
+                 'culture: disagree most students do not drink or are light drinkers', 'students who answered')
+_respect_txt = (f"Overall, attitudes toward students who choose not to drink are {_frame}: {_easy}% of students agree that "
+                f"“{_q('easy_to_make_friends')},” and {_resp}% agree that “{_q('respect')}.”")
+if _light_dis != '' and float(_light_dis) > 0:
+    _respect_txt += (f" At the same time, {_light_dis}% of students disagree that “{_q('light_drinkers')},” although "
+                     f"{noalcoholpaste30perc}% of {School} students did not drink alcohol in the past 30 days.")
+_respect_txt += (" Because most students already support the choice not to drink, efforts that encourage and support "
+                 "non-use build on attitudes students already hold." if _frame.startswith('largely supportive') else
+                 " Strengthening support for students who choose not to drink is an area where prevention efforts could focus.")
+QA_CONTEXT['respect_paragraph'] = _respect_txt
+QA_CONTEXT['tolerance_sentence'] = (
+    f"Responses to the following questions show attitudes towards abstaining from alcohol. Overall, {_own}% of students agree that "
+    f"“{_q('own_decisions')}” ({range_phrase(_od)}), and {_fit_dis}% disagree that “{_q('fit_in')}.”")
+
+# ---------- C19: answer wording quoted from the survey, not paraphrased ----------
+QA_CONTEXT['att_never_good_quote'] = (f"“{sort_order6[0].rstrip('.').lower()},” or that “{sort_order6[1].rstrip('.').lower()}.”")
+
+# ---------- C15: grades closing sentence is conditional ----------
+_n_cannabis_group = int(clean['yearlypot'].notna().sum())
+_ng = {k: int((clean['drinker_risk_10_12'] == v).sum()) for k, v in
+       [('higher-risk', 'High-risk'), ('lower-risk', 'Low-risk'), ('non', 'Non-drinker')]}
+_ng['cannabis'] = _n_cannabis_group
+def _gap_ok(a_key, b_key, sh):
+    """More than one student's worth of difference in BOTH groups compared."""
+    one = max(100.0 / _ng[a_key] if _ng[a_key] else 100.0, 100.0 / _ng[b_key] if _ng[b_key] else 100.0)
+    return abs(sh[a_key] - sh[b_key]) > one * MIN_STUDENT_GAP
+def _academic_sentence2(label, direction):
+    sh = _grade_share(label)
+    if not sh:
+        return ''
+    _lbl = label.replace("'", "’")
+    if direction == 'less':
+        ok = all(sh[a] < min(sh['non'], sh['lower-risk']) and _gap_ok(a, 'non', sh) and _gap_ok(a, 'lower-risk', sh)
+                 for a in ('higher-risk', 'cannabis'))
+        if ok:
+            return (f'"Higher-risk" drinkers ({sh["higher-risk"]}%) and cannabis users ({sh["cannabis"]}%) were less likely than '
+                    f'“non-drinkers” ({sh["non"]}%) and "lower-risk" drinkers ({sh["lower-risk"]}%) to have received “{_lbl}” '
+                    f'during the last school year.')
+    else:
+        ok = all(sh[a] > sh['non'] and _gap_ok(a, 'non', sh) for a in ('higher-risk', 'cannabis'))
+        if ok:
+            return (f'"Higher-risk" drinkers ({sh["higher-risk"]}%) and cannabis users ({sh["cannabis"]}%) were more likely than '
+                    f'“non-drinkers” ({sh["non"]}%) to have received “{_lbl}” during the last school year.')
+        return ''   # no claim about the middle grade band unless the gap is real
+    return (f'The share of students who received “{_lbl}” during the last school year was {sh["higher-risk"]}% of '
+            f'"higher-risk" drinkers ({_ng["higher-risk"]} students), {sh["cannabis"]}% of cannabis users ({_ng["cannabis"]}), '
+            f'{sh["lower-risk"]}% of "lower-risk" drinkers ({_ng["lower-risk"]}) and {sh["non"]}% of “non-drinkers” ({_ng["non"]}).')
+QA_CONTEXT['academic_sentence_top'] = _academic_sentence2(_top_label, 'less')
+QA_CONTEXT['academic_sentence_mid'] = _academic_sentence2(_mid_label, 'more')
+QA_CONTEXT['academic_caveat'] = ''
+_sh_top = _grade_share(_top_label)
+if min(_ng['higher-risk'], _ng['cannabis']) < MIN_GROUP_FOR_GRADES_CLAIM or not _sh_top:
+    QA_CONTEXT['grades_closing_sentence'] = (
+        f"We cannot conclude from this data that a causal relationship exists between alcohol or cannabis use and grades. "
+        f"With only {_ng['higher-risk']} “higher-risk” drinkers and {_ng['cannabis']} cannabis users, the {School} results "
+        f"do not show a clear pattern in either direction.")
+elif all(_sh_top[a] < _sh_top['non'] and _gap_ok(a, 'non', _sh_top) for a in ('higher-risk', 'cannabis')):
+    QA_CONTEXT['grades_closing_sentence'] = (
+        "We cannot conclude from this data that a causal relationship exists between alcohol or cannabis use and grades. "
+        "The findings are, however, in keeping with other research that posits a negative association between "
+        "drinking/drug use and academic performance.")
+else:
+    QA_CONTEXT['grades_closing_sentence'] = (
+        f"We cannot conclude from this data that a causal relationship exists between alcohol or cannabis use and grades. "
+        f"In the {School} results, “higher-risk” drinkers and cannabis users were not less likely than “non-drinkers” to "
+        f"report the highest grades, so these data do not show the negative association reported in other research.")
+
+# ---------- C17: footnote when the two "higher-risk" items disagree ----------
+_m_greatest5 = int((clean['drinks_in_a_row_30_days'] == '5 or more drinks').sum())
+_k_zero = int((clean['drank_30d'] & clean['drinks_in_a_row_30_days'].eq('0 drinks')).sum())
+QA_CONTEXT['greatest_footnote'] = (
+    (f"This table and the “higher-risk” count come from two separate questions, so they do not match exactly. "
+     f"“Higher-risk” drinkers are the {totalhighrisk} students who reported having 5 or more drinks on 1 or more days in "
+     f"the past 30 days. On this question, {_m_greatest5} students gave 5 or more drinks as their greatest number in a row, "
+     f"and {_k_zero} students who reported drinking in the past 30 days answered “0 drinks.” Responses are shown as "
+     f"students gave them.") if (_m_greatest5 != totalhighrisk or _k_zero) else '')
+
+# ---------- C2/C3/C7/C8: methodology text printed in the report ----------
+QA_CONTEXT['exclusion_summary'] = EXCLUSION_SUMMARY
+QA_CONTEXT['time_rule_text'] = (
+    "For every substance, a student who reported use in the past 30 days is also counted as having used it in the "
+    "past 12 months, so past-30-day figures can never be higher than past-12-month figures.")
+QA_CONTEXT['k10_method_text'] = K10_METHOD_TEXT
 
 
 ReportListofVariables =[lifetime8th,
@@ -7698,6 +8106,26 @@ if _time_errors:
 else:
     print('R5 CHECK 2 passed: no group shows past-30-day use above past-12-month use, and cross-table counts match.')
 
+# C18: in the typical-frequency tables, "Never" includes lifetime drinkers who
+# typically never drink, so it is labelled "Typically never" (it is larger than
+# the "never had a whole drink" figure quoted above it).
+for _k in ['often_one_drink', 'often_one_grade', 'often_one_by_risk', 'often_one_by_risk10_12']:
+    _v = context.get(_k)
+    if isinstance(_v, pd.DataFrame) and len(_v.columns):
+        _v = _v.copy()
+        _v[_v.columns[0]] = _v[_v.columns[0]].replace({'Never': 'Typically never'})
+        context[_k] = _v
+
+# C16: percentages with a small base carry an invisible marker into the
+# document; the step right after rendering turns it into "50.0% (1 of 2)".
+for _k, _v in list(context.items()):
+    if isinstance(_v, _Pct):
+        context[_k] = _v.marked()
+    elif isinstance(_v, list) and any(isinstance(_i, _Pct) for _i in _v):
+        context[_k] = [_i.marked() if isinstance(_i, _Pct) else _i for _i in _v]
+    elif isinstance(_v, tuple) and any(isinstance(_i, _Pct) for _i in _v):
+        context[_k] = tuple(_i.marked() if isinstance(_i, _Pct) else _i for _i in _v)
+
 try:
     doc.render(context)
     print("doc.render() succeeded")
@@ -7713,6 +8141,41 @@ except Exception as _render_err:
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Pt, RGBColor
 from docx.oxml.ns import qn as _qn
+
+from docx.text.paragraph import Paragraph as _DocxParagraph
+
+def _iter_all_paragraphs(_doc):
+    """Every paragraph in the body, including table cells (nested too)."""
+    for _pel in _doc.element.body.iter(_qn('w:p')):
+        yield _DocxParagraph(_pel, _doc)
+
+# C16: expand small-base markers into "50.0% (1 of 2)", run by run, so the
+# count lands after the % sign even when % is in the next run.
+_MARK_ONLY = re.compile('⁣N(\\d+)D(\\d+)⁣')
+for _p in _iter_all_paragraphs(doc):
+    if '⁣' not in _p.text:
+        continue
+    _runs = _p.runs
+    for _ri, _r in enumerate(_runs):
+        while True:
+            _m = _MARK_ONLY.search(_r.text)
+            if not _m:
+                break
+            _suffix = f" ({_m.group(1)} of {_m.group(2)})"
+            _before, _after = _r.text[:_m.start()], _r.text[_m.end():]
+            if _after.startswith('%'):
+                _r.text = _before + '%' + _suffix + _after[1:]
+            elif not _after and _ri + 1 < len(_runs) and _runs[_ri + 1].text.startswith('%'):
+                _r.text = _before
+                _runs[_ri + 1].text = '%' + _suffix + _runs[_ri + 1].text[1:]
+            else:
+                _r.text = _before + _suffix + _after
+    if '⁣' in _p.text:      # marker split across runs: rebuild the paragraph text
+        _set_txt = expand_small_n(_p.text).replace('⁣', '')
+        if _p.runs:
+            _p.runs[0].text = _set_txt
+            for _r in _p.runs[1:]:
+                _r.text = ''
 
 _nan_pattern = re.compile(r'^nan$', re.IGNORECASE)
 _bare_number = re.compile(r'^-?\d+\.?\d*$')  # matches "17.0", "3", "100.0" etc.
@@ -8294,6 +8757,224 @@ for _tbl in doc.tables:
 print("Post-render formatting applied: all fixes including typography, brand colors, borders, alignment")
 
 ##############################
+### C24: a grade with no respondents gets no column. When no 8th graders took
+### the survey, every "Grade 8" / "8th" column (school AND U.S. norm) is removed
+### from every table and the table width is shared out again (the 8th-grade-only
+### tables and their text are removed in the template with {%p if has_8th %}).
+##############################
+from docx.oxml import OxmlElement as _OxmlElement
+
+def _tc_span(tc):
+    _gs = tc.find(_qn('w:tcPr') + '/' + _qn('w:gridSpan'))
+    return int(_gs.get(_qn('w:val'))) if _gs is not None else 1
+
+def _set_tc_width(tc, twips):
+    _pr = tc.find(_qn('w:tcPr'))
+    if _pr is None:
+        _pr = _OxmlElement('w:tcPr'); tc.insert(0, _pr)
+    _w = _pr.find(_qn('w:tcW'))
+    if _w is None:
+        _w = _OxmlElement('w:tcW'); _pr.insert(0, _w)
+    _w.set(_qn('w:w'), str(int(twips))); _w.set(_qn('w:type'), 'dxa')
+
+def drop_grade_columns(tbl_el, header_re):
+    """Remove the grid columns whose header cell matches header_re. Returns True if changed."""
+    _rows = tbl_el.findall(_qn('w:tr'))
+    _grid = tbl_el.find(_qn('w:tblGrid'))
+    if not _rows or _grid is None:
+        return False
+    _cols = _grid.findall(_qn('w:gridCol'))
+    _drop = set()
+    for _hdr in _rows[:2]:               # one or two header rows
+        _pos = 0
+        for _tc in _hdr.findall(_qn('w:tc')):
+            _span = _tc_span(_tc)
+            _txt = ''.join(t.text or '' for t in _tc.iter(_qn('w:t'))).strip()
+            if header_re.search(_txt):
+                _drop.update(range(_pos, _pos + _span))
+            _pos += _span
+    if not _drop or len(_drop) >= len(_cols) - 1:
+        return False
+    _widths = [int(c.get(_qn('w:w')) or 0) for c in _cols]
+    _total = sum(_widths)
+    for _tr in _rows:
+        _pos = 0
+        for _tc in list(_tr.findall(_qn('w:tc'))):
+            _span = _tc_span(_tc)
+            _cells = set(range(_pos, _pos + _span))
+            if _cells <= _drop:
+                _tr.remove(_tc)
+            elif _cells & _drop:          # merged cell straddling the dropped columns: shrink it
+                _gs = _tc.find(_qn('w:tcPr') + '/' + _qn('w:gridSpan'))
+                _gs.set(_qn('w:val'), str(_span - len(_cells & _drop)))
+            _pos += _span
+    for _i in sorted(_drop, reverse=True):
+        _grid.remove(_cols[_i])
+    # Share the width out again: label column unchanged, the rest equal (T8).
+    _keep = [w for i, w in enumerate(_widths) if i not in _drop]
+    _first = _keep[0]
+    _rest = (_total - _first) / max(1, len(_keep) - 1)
+    _new = [_first] + [_rest] * (len(_keep) - 1)
+    for _gc, _w in zip(_grid.findall(_qn('w:gridCol')), _new):
+        _gc.set(_qn('w:w'), str(int(_w)))
+    for _tr in _rows:
+        _pos = 0
+        for _tc in _tr.findall(_qn('w:tc')):
+            _span = _tc_span(_tc)
+            _set_tc_width(_tc, sum(_new[_pos:_pos + _span]))
+            _pos += _span
+    return True
+
+def _grade_header_re(n):
+    return re.compile(rf'^(?:Grade {n}\b|{n}th(?:\s|$)|{n}th Grade|Perceived\s*{n}th|Actual\s*{n}th|{n}th Graders)', re.I)
+for _absent_g in ['7th', '8th']:
+    if _absent_g not in clean['grade_level'].values:
+        _hre = _grade_header_re(_absent_g[:-2])
+        _n_dropped = sum(drop_grade_columns(_t, _hre) for _t in list(doc.element.body.iter(_qn('w:tbl'))))
+        if _n_dropped:
+            print(f"C24: removed the {_absent_g}-grade columns from {_n_dropped} table(s) (no {_absent_g} graders took the survey).")
+
+##############################
+### T1, T3, T4, T6, T7: pagination rules enforced on the RENDERED report, so
+### rows added by the template loops follow them too.
+###  - every table: rows never split across pages, header row repeats, rows kept
+###    together; the label above it is kept with it (T3)
+###  - a note under a table ("*Annual use not measured...") stays with it (T7)
+###  - a chart directly under a table stays with the table, but chart paragraphs
+###    themselves are never "keep with next" (T4)
+###  - a table longer than LONG_TABLE_ROWS rows starts on a new page (T6)
+###  - empty spacer paragraphs are removed (T1)
+##############################
+LONG_TABLE_ROWS = 10
+
+def _ppr(p_el):
+    _pp = p_el.find(_qn('w:pPr'))
+    if _pp is None:
+        _pp = _OxmlElement('w:pPr'); p_el.insert(0, _pp)
+    return _pp
+
+def _set_flag(p_el, tag, on=True):
+    _pp = _ppr(p_el)
+    _x = _pp.find(_qn(tag))
+    if on and _x is None:
+        _x = _OxmlElement(tag)
+        # keep schema order loosely: put flags right after pStyle
+        _st = _pp.find(_qn('w:pStyle'))
+        (_st.addnext(_x) if _st is not None else _pp.insert(0, _x))
+    elif on:
+        _x.set(_qn('w:val'), '1')
+    elif _x is not None:
+        _x.set(_qn('w:val'), '0')
+
+def _has_drawing(el):
+    return el.find('.//' + _qn('w:drawing')) is not None or el.find('.//' + _qn('w:pict')) is not None
+
+def _ptext(el):
+    return ''.join(t.text or '' for t in el.iter(_qn('w:t'))).strip()
+
+def _is_spacer(el):
+    if el.tag != _qn('w:p') or _ptext(el) or _has_drawing(el):
+        return False
+    if el.find('.//' + _qn('w:sectPr')) is not None or el.find('.//' + _qn('w:br')) is not None:
+        return False
+    if el.find('.//' + _qn('w:fldChar')) is not None or el.find('.//' + _qn('w:instrText')) is not None:
+        return False
+    if el.find('.//' + _qn('w:bookmarkStart')) is not None:
+        return False
+    return True
+
+def _style_id(p_el):
+    _st = p_el.find(_qn('w:pPr') + '/' + _qn('w:pStyle'))
+    return _st.get(_qn('w:val')) if _st is not None else ''
+
+_body = doc.element.body
+# T1: spacer paragraphs in the body (not table cells) go; spacing comes from styles.
+_spacers = [el for el in list(_body) if _is_spacer(el)]
+for el in _spacers:
+    _body.remove(el)
+for _tbl in _body.iter(_qn('w:tbl')):
+    _trs = _tbl.findall(_qn('w:tr'))
+    for _i, _tr in enumerate(_trs):
+        _trpr = _tr.find(_qn('w:trPr'))
+        if _trpr is None:
+            _trpr = _OxmlElement('w:trPr'); _tr.insert(0, _trpr)
+        if _trpr.find(_qn('w:cantSplit')) is None:
+            _trpr.append(_OxmlElement('w:cantSplit'))
+        if _i == 0 and len(_trs) > 2 and _trpr.find(_qn('w:tblHeader')) is None:
+            _trpr.append(_OxmlElement('w:tblHeader'))
+        if _i < len(_trs) - 1:
+            for _p in _tr.iter(_qn('w:p')):
+                _set_flag(_p, 'w:keepNext')
+    if _tbl.getparent() is not _body:
+        continue          # nested (e.g. highlight boxes): only row rules
+    # label paragraph(s) right above the table stay with it
+    _prev = _tbl.getprevious()
+    _label = None
+    if _prev is not None and _prev.tag == _qn('w:p') and _ptext(_prev) and not _has_drawing(_prev):
+        _set_flag(_prev, 'w:keepNext'); _label = _prev
+        _pp2 = _prev.getprevious()
+        if _pp2 is not None and _pp2.tag == _qn('w:p') and _ptext(_pp2) and len(_ptext(_pp2)) < 200 \
+                and not _style_id(_pp2).lower().startswith('heading'):
+            _set_flag(_pp2, 'w:keepNext')     # question text + table title
+    _nxt = _tbl.getnext()
+    _last = _trs[-1] if _trs else None
+    if _nxt is not None and _nxt.tag == _qn('w:p') and _last is not None and \
+            (_ptext(_nxt).startswith('*') or _has_drawing(_nxt)):
+        for _p in _last.iter(_qn('w:p')):
+            _set_flag(_p, 'w:keepNext')       # T7 notes / T3 chart under the table
+        if _ptext(_nxt).startswith('*'):
+            _n2 = _nxt.getnext()             # second note line ("**Identified as...")
+            if _n2 is not None and _n2.tag == _qn('w:p') and _ptext(_n2).startswith('*'):
+                _set_flag(_nxt, 'w:keepNext')
+    # T6: long tables start on a new page (the break goes on the block's first line)
+    if len(_trs) > LONG_TABLE_ROWS + 1 and _label is not None:
+        _start = _label
+        _p0 = _label.getprevious()
+        while _p0 is not None and _p0.tag == _qn('w:p') and _ptext(_p0) and \
+                (((_style_id(_p0).lower().startswith('heading') or len(_ptext(_p0)) < 200) and
+                  _p0.find(_qn('w:pPr') + '/' + _qn('w:keepNext')) is not None)
+                 or _ptext(_p0).startswith('The following table')):
+            if _ptext(_p0).startswith('The following table'):
+                _set_flag(_p0, 'w:keepNext')
+            _start = _p0; _p0 = _p0.getprevious()
+        _set_flag(_start, 'w:pageBreakBefore')
+# No title left alone at the bottom of a page: a page break on a paragraph
+# moves up to the short title/label lines directly above it (e.g. when the
+# 8th-grade gender table is not printed, the 10th-grade table's break moves up
+# to the "Substance Use by Gender" title). A Heading 1 above already starts a
+# page, so the extra break is dropped.
+_H1_IDS = {s.style_id for s in doc.styles if getattr(s, 'name', '') and s.name.lower() == 'heading 1'}
+_TITLE_STYLES = {'SUPPTableLabel', 'SUPPSubheading', 'SUPPComparisonTitle'}
+for _p in list(_body.findall(_qn('w:p'))):
+    _pb = _p.find(_qn('w:pPr') + '/' + _qn('w:pageBreakBefore'))
+    if _pb is None or _pb.get(_qn('w:val')) in ('0', 'false'):
+        continue
+    _top = _p
+    _q = _p.getprevious()
+    while _q is not None and _q.tag == _qn('w:p') and _ptext(_q) and \
+            (len(_ptext(_q)) < 200 or _ptext(_q).startswith('The following table')) and \
+            (_style_id(_q) in _TITLE_STYLES or _style_id(_q) in _H1_IDS or
+             _style_id(_q).lower().startswith('heading') or _ptext(_q).startswith('The following table')):
+        _top = _q
+        if _style_id(_q) in _H1_IDS or _q.find(_qn('w:pPr') + '/' + _qn('w:pageBreakBefore')) is not None:
+            break                         # this line already starts the page
+        _q = _q.getprevious()
+    if _top is not _p:
+        _pb.getparent().remove(_pb)
+        if _style_id(_top) not in _H1_IDS:
+            _set_flag(_top, 'w:pageBreakBefore')
+        _q = _top                         # keep the moved lines with the table
+        while _q is not None and _q is not _p:
+            _set_flag(_q, 'w:keepNext'); _q = _q.getnext()
+# T4: chart paragraphs are never "keep with next"
+for _p in _body.iter(_qn('w:p')):
+    if _has_drawing(_p):
+        _kn = _p.find(_qn('w:pPr') + '/' + _qn('w:keepNext'))
+        if _kn is not None:
+            _kn.getparent().remove(_kn)
+print(f"T1/T3/T6: removed {len(_spacers)} spacer paragraph(s); table pagination rules applied.")
+
+##############################
 ### B5 + B7: post-render QA lint.
 ### 1) Auto-corrects direction words that contradict the numbers in the same
 ###    sentence ("rises from 100.0% ... to 80.0%").
@@ -8366,8 +9047,105 @@ for _p in _all_report_paragraphs(doc):
     if len(_recent_paras) > 6:
         _recent_paras.pop(0)
 
+##############################
+### Part 4: checks run on every generated report (ISB fix list). Problems are
+### lint ERRORS, so the run stops with "BUILD CHECK FAILED" after saving.
+##############################
+PART4 = []
+def _p4(num, ok, msg):
+    PART4.append(f"{num}. {'PASS' if ok else 'FAIL'}: {msg}")
+    if not ok:
+        LINT_ERRORS.append(f'Part 4 check {num}: {msg}')
+
+# 1. norms file complete (checked at startup; the run stops there if not)
+_p4(1, not validate_mtf(MTF, MTFyear), 'norms file has Total, Male and Female for every substance x timeline')
+# 2. exclusion log + totals match Appendix A
+_appA_grade = int(pd.to_numeric(gradedf['Count (N)'], errors='coerce').sum())
+_appA_sex = int(pd.to_numeric(sexdf['Count (N)'], errors='coerce').sum())
+_p4(2, len(EXCLUSION_LOG) == removed_N and N - removed_N == N_analyzed == _appA_grade == _appA_sex,
+    f'exclusion log has {len(EXCLUSION_LOG)} rows for {removed_N} exclusions; {N} collected - {removed_N} = '
+    f'{N_analyzed} analyzed; Appendix A totals by grade {_appA_grade}, by sex {_appA_sex}')
+# 3. the same statistic has the same value in the sentence and in its table
+_c3 = []
+for _lbl, _tbl, _series in [('social atmosphere', socialatmo, _sa), ('pressured', pressured_table, _pr)]:
+    _row = _tbl[_tbl['index'] == 'Total Agree']
+    for _g, _v in _series:
+        if f'{_g} (N)' in _row.columns and _v != '':
+            _tv = round(float(_row[f'{_g} (N)'].iloc[0]), 1)
+            if abs(_tv - float(_v)) > 0.05:
+                _c3.append(f'{_lbl} {_g}: sentence {float(_v)} vs table {_tv}')
+_recount_double = int(((_cs['High-risk (%)'] >= 2 * _cs['Low-risk (%)']) & (_cs['High-risk (%)'] > 0)).sum())
+if _recount_double != len_highrisk_twice_risk:
+    _c3.append(f'"double or greater": sentence {len_highrisk_twice_risk} vs table {_recount_double}')
+if sum(highrisk_by_grade.values()) != totalhighrisk:
+    _c3.append(f'higher-risk count {totalhighrisk} vs grade breakdown {sum(highrisk_by_grade.values())}')
+_ov = float(QA_CONTEXT['social_atmo_df_yes_perc']) if QA_CONTEXT['social_atmo_df_yes_perc'] != '' else None
+if _ov is not None and abs(_ov - float(social_atmo_df_yes_perc)) > 0.05:
+    _c3.append(f'social atmosphere overall: {_ov} vs {social_atmo_df_yes_perc}')
+_p4(3, not _c3, 'numbers in sentences match their tables' + (': ' + '; '.join(_c3) if _c3 else ''))
+# 4. no sentence names a grade with no respondents
+_absent = [g for g in ['7th', '8th', '9th', '10th', '11th', '12th'] if g not in _grades_seq]
+_grade_word_re = re.compile(r'\b(' + '|'.join(_absent) + r')[ -](?:grade|graders)\b') if _absent else None
+_c4 = []
+if _grade_word_re:
+    for _pel in _body.findall(_qn('w:p')):
+        _t = _ptext(_pel)
+        if _grade_word_re.search(_t) and 'Seniors (12th graders)' not in _t:
+            _c4.append(_t[:120])
+_p4(4, not _c4, f'no sentence names a grade with zero respondents ({", ".join(_absent) or "none absent"})'
+    + (': ' + ' | '.join(_c4[:5]) if _c4 else ''))
+# 5. percentages with a base under SHOW_N_BELOW carry their n
+_left = [p.text[:80] for p in _iter_all_paragraphs(doc) if '⁣' in p.text]
+_small = sorted({k for k, v in RESULTS.items() if v['d'] and v['d'] < SHOW_N_BELOW})
+_p4(5, not _left, f'small-base percentages printed with their n ({len(_small)} small-base statistics computed)')
+for _k in _small[:40]:
+    LINT_WARNINGS.append(f'small base (shown with n where printed): {_k} = {RESULTS[_k]["value"]}% '
+                         f'({int(RESULTS[_k]["n"])} of {int(RESULTS[_k]["d"])})')
+# 6. "Higher-risk" / "Lower-risk" everywhere (charts are labelled by GROUP_DISPLAY)
+_c6 = [p.text[:100] for p in _iter_all_paragraphs(doc) if re.search(r'\b(High|Low)-risk\b', p.text)]
+_p4(6, not _c6, '"Higher-risk" / "Lower-risk" used everywhere, including chart labels'
+    + (': ' + ' | '.join(_c6[:5]) if _c6 else ''))
+# 7. no empty paragraphs in the body (tables kept whole by the rules above)
+_c7 = sum(1 for el in _body if _is_spacer(el))
+_p4(7, _c7 == 0, f'no empty paragraphs in the body ({_c7} found); table rows cannot split; labels kept with tables')
+# 8. TOC: levels 1-2 only, refreshed when the file is opened (after pagination is final)
+_toc_instr = ' '.join(t.text or '' for t in _body.iter(_qn('w:instrText')) if 'TOC' in (t.text or ''))
+_p4(8, (not _toc_instr) or ('1-2' in _toc_instr),
+    f'table of contents limited to heading levels 1-2 ({_toc_instr.strip()[:40] or "no TOC field"})')
+# 9. organization name
+_c9 = [p.text[:100] for p in _iter_all_paragraphs(doc) if re.search(r'\bFCD\b|Prevention Education Solutions', p.text)]
+_p4(9, not _c9, 'organization name is "Prevention Ed" throughout' + (': ' + ' | '.join(_c9[:3]) if _c9 else ''))
+# 10. both dates printed and labelled
+_all_text = '\n'.join(p.text for p in _iter_all_paragraphs(doc))
+_p4(10, ('Survey date' in _all_text and str(date_survey) in _all_text and 'Report date' in _all_text
+         and REPORT_DATE in _all_text),
+    f'survey date ({date_survey}) and report date ({REPORT_DATE}) both printed with labels')
+print('PART 4 CHECKS\n  ' + '\n  '.join(PART4))
+# Paragraphs shaded green in the template need a manual review in every report:
+# list them so they are not missed.
+_green = []
+for _pel in _body.iter(_qn('w:p')):
+    if any((_s.get(_qn('w:fill')) or '').lower() == '00ff00' for _s in _pel.iter(_qn('w:shd'))) and _ptext(_pel).strip():
+        _green.append(_ptext(_pel).strip())
+for _g in _green:
+    LINT_WARNINGS.append(f'MANUAL REVIEW (green text): "{_g[:150]}"')
+if _green:
+    print(f"{len(_green)} green paragraph(s) need a manual review (listed in _QA_lint.txt).")
+
+# Word refreshes the table of contents (and page numbers) when the report is
+# opened, i.e. after pagination is final (T16).
+_settings = doc.settings.element
+if _settings.find(_qn('w:updateFields')) is None:
+    _uf = _OxmlElement('w:updateFields'); _uf.set(_qn('w:val'), 'true')
+    _settings.append(_uf)
+
 # Save the QA side files next to the report
 _qa_base = os.path.splitext(savepath)[0]
+try:
+    EXCLUSION_LOG.to_csv(_qa_base + '_exclusion_log.csv', index=False)   # C2
+    print(f"Exclusion log saved: {_qa_base}_exclusion_log.csv ({len(EXCLUSION_LOG)} responses)")
+except Exception as _ex_err:
+    LINT_ERRORS.append(f'Part 4 check 2: could not write the exclusion log: {_ex_err}')
 try:
     pd.DataFrame(METRIC_LOG).to_csv(_qa_base + '_QA_metrics.csv', index=False)
     _flags_df = pd.DataFrame(QA_FLAGS)
@@ -8377,7 +9155,7 @@ try:
                                                         'issue': INVALID_RESPONDENTS['reason'] + np.where(INVALID_RESPONDENTS['excluded'], ' (EXCLUDED)', ' (kept)')})])
     _flags_df.to_csv(_qa_base + '_QA_flags.csv', index=False)
     with open(_qa_base + '_QA_lint.txt', 'w') as _f:
-        _f.write('ERRORS\n' + '\n'.join(LINT_ERRORS or ['none']) + '\n\nWARNINGS / AUTO-FIXES\n' + '\n'.join(LINT_WARNINGS or ['none']) + '\n')
+        _f.write('PART 4 CHECKS\n' + '\n'.join(PART4) + '\n\nERRORS\n' + '\n'.join(LINT_ERRORS or ['none']) + '\n\nWARNINGS / AUTO-FIXES\n' + '\n'.join(LINT_WARNINGS or ['none']) + '\n')
     print(f"QA files saved: {_qa_base}_QA_metrics.csv, _QA_flags.csv, _QA_lint.txt")
 except Exception as _qa_err:
     print(f"Could not write QA side files: {_qa_err}")

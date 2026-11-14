@@ -305,6 +305,8 @@ def fix(path_in, path_out, seventh=False):
         ('8th, 10th and 12th graders', '{{cmp_grades_text}} graders'),
         ('8th, 10th and 12th grade students', '{{cmp_grades_text}} grade students'),
         ('8th, 10th, and 12th grade students', '{{cmp_grades_text}} grade students'),
+        # C12: the "cluster" claim is now part of the data-driven sentence
+        ('These findings show how risk factors can “cluster.” {{clustering_sentence}}', '{{clustering_sentence}}'),
         # C13
         ('Of students who have had alcohol within the past 30 days:', '{{circumstances_lead}}'),
         # C15
@@ -313,7 +315,7 @@ def fix(path_in, path_out, seventh=False):
          'drinking/drug use and academic performance.', '{{grades_closing_sentence}}'),
         # C19: quoted answer wording comes from the survey
         ('believe that teenage drinking “is never a good thing to do,” or that “drinking is alright, but a person should not get drunk.”',
-         'believe that {{att_never_good_quote}}.'),
+         'believe that {{att_never_good_quote}}'),
         # T17
         ('health of individual student’s and the wider community', 'health of individual students and the wider community'),
         ("health of individual student's and the wider community", 'health of individual students and the wider community'),
@@ -365,10 +367,41 @@ def fix(path_in, path_out, seventh=False):
             p.addprevious(sp)          # survey date first, then report date
             log('C25: labelled survey date + report date')
 
+    # NOTE: bright green text shading marks paragraphs that need a manual review
+    # in every report. It is left exactly as it is (the pipeline lists those
+    # paragraphs in _QA_lint.txt).
+
     # ============ T1: spacer paragraphs ============
     # Cover page: its vertical position came from 14 empty paragraphs; use
     # space-before on the school name instead.
     first_text = next(el for el in body if is_p(el) and ptext(el).strip())
+    # Empty paragraphs that only hold bookmarks (e.g. empty Heading 1 lines used
+    # as spacers): move the bookmarks to the next real paragraph, then they are
+    # ordinary spacers. Left in place they become blank pages once Heading 1
+    # starts a new page.
+    moved = 0
+    for el in list(body):
+        if not is_p(el) or ptext(el).strip() or has_drawing(el):
+            continue
+        if el.find('.//' + qn('w:sectPr')) is not None or el.find('.//' + qn('w:fldChar')) is not None:
+            continue
+        bms = el.findall(qn('w:bookmarkStart')) + el.findall(qn('w:bookmarkEnd'))
+        if not bms:
+            continue
+        nxt = el.getnext()
+        while nxt is not None and not (is_p(nxt) and ptext(nxt).strip()):
+            nxt = nxt.getnext()
+        if nxt is None:
+            continue
+        anchor = nxt.find(qn('w:pPr'))
+        for bm in bms:
+            el.remove(bm)
+            if anchor is not None:
+                anchor.addnext(bm); anchor = bm
+            else:
+                nxt.insert(0, bm); anchor = bm
+        moved += 1
+    log(f'T1: moved bookmarks out of {moved} empty paragraphs')
     removed = 0
     for el in list(body):
         if is_spacer(el):
