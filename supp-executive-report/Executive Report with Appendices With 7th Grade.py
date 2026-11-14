@@ -208,7 +208,7 @@ FAIL_ON_TIME_ORDER_ERRORS = True
 FAIL_ON_LINT_ERRORS = True
 
 ##############################
-### ISB FIXES (ISB SUPP Executive Report 2026 hand corrections, Nov 2026)
+### NOV 2026 FIXES (from the Nov 2026 report review; general rules for every school)
 ### Item codes C1-C25 / T1-T20 refer to "SUPP report code and template fixes".
 ##############################
 # C3: named exclusion rules. Every excluded respondent is written to
@@ -2599,7 +2599,7 @@ def create_bullet_point(df, surveryval, grade, per_timeline=None):
 ##############################
 ### C21-C24: charts are drawn at their FINAL size with the fonts wanted and
 ### inserted at 100% (never shrunk in Word, which shrank the axis and legend
-### text too). Sizes from Part 3 of the ISB fix list.
+### text too). Sizes from Part 3 of the Nov 2026 fix list.
 ##############################
 CHART_SIZE_MTF = (5.4, 3.6)     # U.S. norm comparison charts (one page per measure)
 CHART_SIZE_PAIR = (4.7, 2.9)    # culture of use / school attitudes (two pairs per page)
@@ -6674,7 +6674,7 @@ if 0 < _yp < MIN_CELL_N:
 
 
 ##############################################################################
-### ISB FIXES (Nov 2026): narrative rules C4, C5, C10, C12-C15, C17, C19, C25
+### NOV 2026 FIXES: narrative rules C4, C5, C10, C12-C15, C17, C19, C25
 ### and the methodology text for C7/C8. Everything is passed to the template
 ### through QA_CONTEXT, which overrides older values of the same name.
 ##############################################################################
@@ -9061,7 +9061,7 @@ for _p in _all_report_paragraphs(doc):
         _recent_paras.pop(0)
 
 ##############################
-### Part 4: checks run on every generated report (ISB fix list). Problems are
+### Part 4: checks run on every generated report (Nov 2026 fix list). Problems are
 ### lint ERRORS, so the run stops with "BUILD CHECK FAILED" after saving.
 ##############################
 PART4 = []

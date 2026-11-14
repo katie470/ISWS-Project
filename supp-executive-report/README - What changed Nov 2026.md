@@ -1,6 +1,6 @@
-# SUPP report pipeline: fixes from the ISB 2026 hand corrections
+# SUPP report pipeline: November 2026 fixes
 
-Updated 14 November 2026. Source: "SUPP Executive Report: fixes for the Python code and the template" (hand corrections to the ISB SUPP Executive Report 2026). These files replace the October 2026 versions:
+Updated 14 November 2026. Source: "SUPP Executive Report: fixes for the Python code and the template", a list of problems found when one school's report was corrected by hand. Every fix is a general rule: the scripts and templates work out the numbers, wording, grade lists and page layout from whatever survey data is loaded, for any school. These files replace the October 2026 versions:
 
 | File | What it is |
 |---|---|
@@ -19,7 +19,7 @@ Saved next to the report, alongside the October files (`_QA_metrics.csv`, `_QA_f
 - `<report>_exclusion_log.csv` (C2): one row per excluded response with its response ID (the Typeform `#` or Token), grade, sex and the rule(s) it triggered. The report can be rebuilt from the raw CSV plus this log.
 - `_QA_lint.txt` now starts with **PART 4 CHECKS**: the ten checks from the fix list, each PASS or FAIL. Any FAIL stops the run with "BUILD CHECK FAILED" after the file is saved, like the other lint errors.
 
-## Settings (top of each script, search for `ISB FIXES`)
+## Settings (top of each script, search for `NOV 2026 FIXES`)
 
 - `EXCLUDE_FIRST_DRINK_AGE`, `EXCLUDE_ALCOHOL_12M_CONTRADICTIONS`, `EXCLUDE_MOSTLY_BLANK` (all on) and `MIN_ANSWERED_ITEMS = 40`: the new exclusion rules.
 - `SHOW_N_BELOW = 10`: a percentage with a smaller base is printed with its count, e.g. "50.0% (1 of 2)".
@@ -29,7 +29,7 @@ Saved next to the report, alongside the October files (`_QA_metrics.csv`, `_QA_f
 
 ## Python fixes
 
-**C1 Norms file.** One reader (`read_mtf`) for the startup check and the analysis. It accepts comma, semicolon or tab files and files with no header row (the ISB file had its first data row, `Total;16.8;29.6;48.6;Alcohol;lifetime;2025`, read as the header). The run stops at startup if any substance and timeline lacks a Total, Male or Female row.
+**C1 Norms file.** One reader (`read_mtf`) for the startup check and the analysis. It accepts comma, semicolon or tab files and files with no header row (previously a file without a header lost its first data row, e.g. the Alcohol lifetime Total row, because it was read as the header). The run stops at startup if any substance and timeline lacks a Total, Male or Female row.
 
 **C2/C3 Exclusions.** All rules run in one place and are named:
 
@@ -46,9 +46,9 @@ Saved next to the report, alongside the October files (`_QA_metrics.csv`, `_QA_f
 
 The Reliability section prints how many surveys each rule removed.
 
-**C4 One result per statistic.** Every named percentage is stored once with its numerator and denominator (`RESULTS`). The Culture of Use "agree" figures under the first two tables now use students who answered the question (83/466 = 17.8%, not 83/471 = 17.6%), the same base as everywhere else.
+**C4 One result per statistic.** Every named percentage is stored once with its numerator and denominator (`RESULTS`). The Culture of Use "agree" figures under the first two tables now divide by the students who answered the question, not by every student in those grades, so they match the same figure elsewhere in the report.
 
-**C5** "Use less than the U.S. average on X% of substances" uses the same one-student-margin classifier as the highlight box, counts only substances with a U.S. norm, and prints the count: "45.5% (5 of 11)".
+**C5** "Use less than the U.S. average on X% of substances" uses the same one-student-margin classifier as the highlight box, counts only substances with a U.S. norm, and prints the count, e.g. "45.5% (5 of 11)".
 
 **C6** "Double or greater" requires the higher-risk value to be above zero (0.0% vs 0.0% no longer counts).
 
@@ -56,15 +56,15 @@ The Reliability section prints how many surveys each rule removed.
 
 **C8 Kessler (K10).** Cut-offs written down in the code and printed in the methodology: K10 10-19 well, 20-24 mild, 25-29 moderate, 30+ severe; depression subscale (6 items) 20+ high; anxiety subscale (4 items) 13+ high. Missing items no longer count as 0: one skipped item is filled from the student's other items on that scale; more than one and the student is left out of that table. Each K10 table now divides by the students scored on that scale (the anxiety and full K10 columns used the depression count).
 
-**C9** The alcohol-vs-norms sentence lists the measures that are actually below norms (it lost "lifetime" only because of C1).
+**C9** The alcohol-vs-norms sentence lists the measures that are actually below norms (a missing norms row used to drop a measure silently; C1 now stops the run instead).
 
 **C10** Grade lists ("10th and 12th graders", the comparison titles, "grades 9, 10, 11 and 12") are built from grades that have respondents.
 
-**C11** Executive Summary higher-risk breakdown names every grade: "1 is in 10th grade, 3 are in 11th grade, and 3 are in 12th grade."
+**C11** Executive Summary higher-risk breakdown names the count for every grade with higher-risk drinkers, e.g. "1 is in 10th grade, 3 are in 11th grade, and 3 are in 12th grade."
 
 **C12** "Risk factors cluster" examples are printed only for substances where higher-risk drinkers exceed both other groups by more than one student.
 
-**C13** Circumstances of Use: "Of the 29 students who drank within the past 30 days and answered this question" when fewer answered than drank.
+**C13** Circumstances of Use: when fewer students answered the location question than drank in the past 30 days, the lead-in says how many answered ("Of the N students who drank within the past 30 days and answered this question").
 
 **C14** Culture of Use paragraph: "mixed" only when the figures are mixed; no figure repeated from the sentence before; the light-drinker claim is tied to a number (who disagree vs who did not drink in the past 30 days).
 

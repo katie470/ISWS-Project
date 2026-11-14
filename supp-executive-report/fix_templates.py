@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the ISB 2026 template fixes (T1-T20, Part 3 sizes, and the template side
+"""Apply the Nov 2026 template fixes (T1-T20, Part 3 sizes, and the template side
 of C2, C5, C7, C8, C10, C12, C13, C15, C17, C19, C20, C24, C25) to a SUPP
 Executive Report template.
 
