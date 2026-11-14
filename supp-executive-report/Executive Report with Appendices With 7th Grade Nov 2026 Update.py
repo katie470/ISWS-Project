@@ -670,7 +670,9 @@ else:
             if MTFyear not in [str(y) for y in _avail]:
                 _warnings.append(f"MTF year '{MTFyear}' not in file. Available: {_avail}. Will use {max(_avail)}.")
                 MTFyear = str(max(_avail))
-            _mtf_problems = validate_mtf(_test_mtf, MTFyear)
+            # The Two-Year Trend Report runs this script only to clean the survey
+            # data and passes a placeholder norms file; norms are not used there.
+            _mtf_problems = [] if globals().get('SUPP_CLEANING_ONLY') else validate_mtf(_test_mtf, MTFyear)
             if _mtf_problems:
                 _errors.append("MTF CSV is incomplete (every substance and timeline needs Total, Male and Female rows):\n      "
                                + "\n      ".join(_mtf_problems))
