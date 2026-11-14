@@ -8927,7 +8927,20 @@ for _tbl in _body.iter(_qn('w:tbl')):
             if _n2 is not None and _n2.tag == _qn('w:p') and _ptext(_n2).startswith('*'):
                 _set_flag(_nxt, 'w:keepNext')
     # T6: long tables start on a new page (the break goes on the block's first line)
-    if len(_trs) > LONG_TABLE_ROWS + 1 and _label is not None:
+    # ...unless its section heading (Heading 1, which always starts a page) is
+    # a few lines above with no other table in between: the approved layouts put
+    # heading + bullets + table on one page (higher-risk subgroups p. A-C).
+    _sec_start = False
+    _w = _label.getprevious() if _label is not None else None
+    for _k in range(10):
+        if _w is None or _w.tag == _qn('w:tbl'):
+            break
+        _sid = _style_id(_w)
+        if _sid and any(s.style_id == _sid and s.name.lower() == 'heading 1' for s in doc.styles if getattr(s, 'name', None)):
+            _sec_start = True
+            break
+        _w = _w.getprevious()
+    if len(_trs) > LONG_TABLE_ROWS + 1 and _label is not None and not _sec_start:
         _start = _label
         _p0 = _label.getprevious()
         while _p0 is not None and _p0.tag == _qn('w:p') and _ptext(_p0) and \
