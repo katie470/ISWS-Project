@@ -1,13 +1,13 @@
 # SUPP report pipeline: November 2026 fixes
 
-Updated 14 November 2026. Source: "SUPP Executive Report: fixes for the Python code and the template", a list of problems found when one school's report was corrected by hand. Every fix is a general rule: the scripts and templates work out the numbers, wording, grade lists and page layout from whatever survey data is loaded, for any school. These files replace the October 2026 versions:
+Updated 14 November 2026. Source: "SUPP Executive Report: fixes for the Python code and the template", a list of problems found when one school's report was corrected by hand. Every fix is a general rule: the scripts and templates work out the numbers, wording, grade lists and page layout from whatever survey data is loaded, for any school. These files replace the October 2026 versions (`Executive Report with Appendices 9 7 2026.py`, `Executive Report with Appendices With 7th Grade.py` and their two templates):
 
 | File | What it is |
 |---|---|
-| `Executive Report with Appendices 9 7 2026.py` | Pipeline for 8th-12th grade schools |
-| `Executive Report with Appendices With 7th Grade.py` | Pipeline for 7th-12th grade schools |
-| `Fall Executive Report with Appendices Template.docx` | Word template for the 8th-12th script |
-| `Fall Executive Report with Appendices Template With 7th Grade.docx` | Word template for the 7th grade script |
+| `Executive Report with Appendices Nov 2026 Update.py` | Pipeline for 8th-12th grade schools |
+| `Executive Report with Appendices With 7th Grade Nov 2026 Update.py` | Pipeline for 7th-12th grade schools |
+| `Fall Executive Report with Appendices Template Nov 2026 Update.docx` | Word template for the 8th-12th script |
+| `Fall Executive Report with Appendices Template With 7th Grade Nov 2026 Update.docx` | Word template for the 7th grade script |
 | `fix_templates.py` | The script that applied the template fixes (T1-T20). Run it again on any new copy of a template: `python3 fix_templates.py IN.docx OUT.docx` |
 
 Keep each script next to its template. The setup questions are unchanged, so the SUPP Report Maker form keeps working without any change. The one new option (the report date) is set without a new question; see C25 below.

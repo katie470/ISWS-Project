@@ -5,14 +5,6 @@
 
 
 ##############################
-### 7TH GRADE VERSION
-### Same as "Executive Report with Appendices 9 7 2026.py" but supports 7th-12th grade
-### schools. 7th grade gets its own column in every grade-level table. MTF comparisons
-### stay 8th/10th/12th (MTF has no 7th-grade norms). Uses
-### "Fall Executive Report with Appendices Template With 7th Grade.docx".
-##############################
-
-##############################
 ### Libraries
 ##############################
 
@@ -527,7 +519,7 @@ MTFfilepath = clean_path(input("\nWhere on your computer is the MTF_stats data i
 MTFyear = input("\nWhat MTF year's data to use? (e.g. 2022)\n> ").strip()
 
 # Default to the appendices template that lives next to this script
-_default_template = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Fall Executive Report with Appendices Template With 7th Grade.docx')
+_default_template = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Fall Executive Report with Appendices Template Nov 2026 Update.docx')
 _docx_input = input(f"\nWhere is the report + appendices template?\n[Press Enter for default: {_default_template}]\n(Tip: drag the file from Finder into this window)\n> ").strip()
 docxpath = clean_path(_docx_input) if _docx_input else _default_template
 
@@ -1153,20 +1145,17 @@ grades_perc = [x+' (%)' for x in grades ]
 
 has_8th = '8th' in grades
 
-# 7TH GRADE VERSION: 7th is placed LAST (row[11]/row[12] in the template, where the
-# original code had two blank pad columns) so every 8th-12th position is unchanged.
 _FULL_GRADE_COLS = []
-for _g in ['8th', '9th', '10th', '11th', '12th', '7th']:
+for _g in ['8th', '9th', '10th', '11th', '12th']:
     _FULL_GRADE_COLS += [f'{_g} (N)', f'{_g} (%)']
 
-# Grade (N) only list — used by total_agree_disagree and similar summary functions.
-# 7th is last (template row[6]).
-_FULL_GRADES_N = [f'{_g} (N)' for _g in ['8th', '9th', '10th', '11th', '12th', '7th']]
+# Grade (N) only list — used by total_agree_disagree and similar summary functions
+_FULL_GRADES_N = [f'{_g} (N)' for _g in ['8th', '9th', '10th', '11th', '12th']]
 
 def _pad_grade_cols(df, label_col):
-    """Ensure df always has all 6 grade column pairs in the correct positional order,
+    """Ensure df always has all 5 grade column pairs in the correct positional order,
     padding missing grades so template row[N] indices are stable.
-    The template expects 13 columns: label + 8th-12th pairs (N,%) + 7th pair (row[11], row[12]).
+    The template expects 13 columns: label + 5 grade pairs (N,%) + 2 trailing pads.
     (N) columns are padded with 0 so arithmetic division-by-zero guards fire correctly.
     (%) columns are padded with '' so downstream early-exit checks return '' cleanly."""
     for col in _FULL_GRADE_COLS:
@@ -1175,7 +1164,10 @@ def _pad_grade_cols(df, label_col):
                 df[col] = 0
             else:
                 df[col] = ''
-    return df[[label_col] + _FULL_GRADE_COLS]
+    # Add 2 trailing pad columns so template row[11] and row[12] don't error
+    df['_pad11'] = ''
+    df['_pad12'] = ''
+    return df[[label_col] + _FULL_GRADE_COLS + ['_pad11', '_pad12']]
 
 
 # collist = [ "id","sex","age","grade_level","grades_overall","age_at_first_drink","where_first_use_alcohol","where_first_use_alcohol_text","how_often_1_drink","how_many_drinks","one_drink_past_12","felt_or_tried_to_cut","drinking_or_drug_problem","felt_guilty_about_your_drinking","needed_a_drink_first_thing","used_alcohol_by_yourself","get_drunk","do_something_you_later_felt_sorry_for","friend_fight_argument_bad_feelsing","family_fight_argument_bad_feelsing","sexual_experience","perform_poorly_school_work","trouble_concentrating","sick_vomit_hangover","drive","ride","trouble_school_home","hang_out_bad_influence","forget_what_happened","pass_out","get_hurt","drink_before_school","try_other_substances","drank_more","one_drink_past_30_days","drinks_in_a_row_30_days","days_5_or_more_drinks","drunk_30_days","where_do_you_drink","where_do_you_drink_other","age_first_time_pot","how_often_pot","use_alcohol_12","use_cigarettes_12","use_vapes_12","use_smokeless_tobacco_12","use_pot_12","use_ecstasy_12","use_heroin_12","use_narcotics_12","use_amphetamines_12","use_sedatives_12","use_methamphetamine_12","use_cocaine_12","use_lsd_12","use_hallucinogen_12","use_inhalants_12","use_steroids_12","use_cold_medicine_12","use_alcohol_30","use_cigarettes_30","use_vapes_30","use_smokeless_tobacco_30","use_pot_30","use_ecstasy_30","use_heroin_30","use_narcotics_30","use_amphetamines_30","use_sedatives_30","use_methamphetamine_30","use_cocaine_30","use_lsd_30","use_hallucinogen_30","use_inhalants_30","use_steroids_30","use_cold_medicine_30","taking_concerned_other","taking_care_drank_too_much_other","taking_care_consumed_too_much_other","emergency_medical_care_other","in_trouble_other","feeling_insulted_other","verbal_argument_other","pushed_hit_other","sexual_experience_other","witness_vomit_other","unsafe_other","sleep_difficulty_other","homework_difficulty_other","school_dance_use","attitude","one_2_friend","three_4_friend","five_friend","got_drunk_friend","harm_1_2_drinks","harm_1_2_daily","harm_3_4_daily","harm_5","pot_friend_once","pot_friend_occasion","pot_friend_regular","social_atmosphere","pressured","easy_to_make_friends","students_assume","own_decisions","respect","fit_in","light_drinkers","binge_okay","discussion_friend","discussion_guardian","discussion_teacher","drink_how_often_your_grade","drink_how_often_seniors","how_many_your_grade","how_many_seniors","one_drink_30_days_your_school","one_drink_30_days_your_grade","one_drink_30_days_seniors","how_many_30_days_your_grade","how_many_30_days_your_seniors","marijuana_your_grade","marijuana_seniors","percent_ever_used","thoughts_alcohol_policies","thoughts_enforcement","thoughts_other_alcohol_policies","thoughts_other_enforcement","valued","academics_to_me","teachers","sincere_effort","care","academics_to_others","adult_trust","school_12","parent_interest","clear_rules","call","come_home","clear_rules_alcohol","not_home","use_parent_knowing","use_parent_not_knowing","meals","friend_problem","talking_parents","talking_parents_about_friend","classmates_pressured","parents_present_visible","academic_stress","parent_stress","college_stress","overlooked_stress","expectations_stress","boredom_stress","fitting_in_stress","coping_alcohol","coping_cigarettes","coping_vape","coping_smokeless_tobacco","coping_marijuana","coping_molly","coping_heroin","coping_narcotics","coping_amphetamines","coping_sedatives","coping_meth","coping_cocaine","coping_lsd","coping_hallucinogens","coping_inhalant","coping_steroid","coping_cold_med","tired","nervous","no_calm","hopless","restless","no_sit_still","depressed","effort","cheer","worthless"]
@@ -1551,7 +1543,7 @@ removed_N = 0
 # survey data. Grades present in the data but missing from the entered list
 # would otherwise be silently excluded from every table (and can crash the
 # 8th-grade code paths); grades entered with no respondents render as '-'.
-_SUPPORTED_GRADES = ['7th', '8th', '9th', '10th', '11th', '12th']
+_SUPPORTED_GRADES = ['8th', '9th', '10th', '11th', '12th']
 _grades_in_survey = [g for g in _SUPPORTED_GRADES if g in set(clean['grade_level'].dropna())]
 _missing_from_input = [g for g in _grades_in_survey if g not in grades]
 if _missing_from_input:
@@ -1567,7 +1559,7 @@ if _missing_from_input:
 _unsupported_grades = sorted(set(clean['grade_level'].dropna()) - set(_SUPPORTED_GRADES))
 if _unsupported_grades:
     print(f"⚠️  WARNING: {_unsupported_grades} respondents found in the data — this report "
-          f"only supports grades 7th-12th, so they are excluded from grade-level tables.")
+          f"only supports grades 8th-12th, so they are excluded from grade-level tables.")
 _empty_grades = [g for g in grades if g not in _grades_in_survey and g in _SUPPORTED_GRADES]
 if _empty_grades:
     print(f"⚠️  NOTE: no survey responses for {_empty_grades} — their table columns will show '-'.")
@@ -2262,7 +2254,7 @@ def total_agree_disagree(df):
     """
     dislist= []
     agglist =[]
-    # Use _FULL_GRADES_N (8th-12th + 7th) so all 6 grades are included even if the
+    # Use _FULL_GRADES_N (8th-12th) so all 5 grades are included even if the
     # school only has 9th-12th.  Columns padded by _pad_grade_cols will have 0
     # values, producing NaN percentages that fillna(0) handles below.
     use_grades_n = [g for g in _FULL_GRADES_N if g in df.columns]
@@ -2280,8 +2272,8 @@ def total_agree_disagree(df):
     newdf.columns = newdf.iloc[0]
     newdf = newdf[1:].reset_index()
     newdf =newdf.set_index('index').loc[['Total Agree', 'Total Disagree']].reset_index()
-    # Template reads [0..6] = label + one value per grade (8th-12th, then 7th at [6]).
-    # Ensure all 6 grade columns exist; add any missing with empty string.
+    # Template reads [0,1,2,3,4,5] = label + one value per grade (8th-12th).
+    # Ensure all 5 grade columns exist; add any missing with empty string.
     for g in _FULL_GRADES_N:
         if g not in newdf.columns:
             newdf[g] = 0.0
@@ -3518,7 +3510,7 @@ perctable['perc'] = round((perctable['countyes'] / perctable['total'])*100, 1)
 perctable =perctable.pivot(index='sex', columns='grade_level', values='perc').reset_index()
 # A (grade, sex) cell with zero drinkers is absent from the pivot and would
 # render as '-'; for grades that took the survey it must show 0.0% instead.
-for _g in [g for g in ['7th', '8th', '9th', '10th', '11th', '12th'] if g in clean['grade_level'].values]:
+for _g in [g for g in ['8th', '9th', '10th', '11th', '12th'] if g in clean['grade_level'].values]:
     if _g not in perctable.columns:
         perctable[_g] = 0.0
 _gradecols = [c for c in perctable.columns if c != 'sex']
@@ -3805,7 +3797,7 @@ perctable['perc'] = round((perctable['countyes'] / perctable['total'])*100, 1)
 perctable =perctable.pivot(index='sex', columns='grade_level', values='perc').reset_index()
 # A (grade, sex) cell with zero drinkers is absent from the pivot and would
 # render as '-'; for grades that took the survey it must show 0.0% instead.
-for _g in [g for g in ['7th', '8th', '9th', '10th', '11th', '12th'] if g in clean['grade_level'].values]:
+for _g in [g for g in ['8th', '9th', '10th', '11th', '12th'] if g in clean['grade_level'].values]:
     if _g not in perctable.columns:
         perctable[_g] = 0.0
 _gradecols = [c for c in perctable.columns if c != 'sex']
@@ -5885,30 +5877,24 @@ if '8th' in clean['grade_level'].values and len(ALLSUBSTANCE8th_12_MTF) > 0:
 # columns are filled with '-' — building a narrower table here would shift
 # every grade's data under the wrong header in the report.
 _has_8th_data = '8th' in clean['grade_level'].values
-_has_7th_data = '7th' in clean['grade_level'].values
-# 7TH GRADE VERSION: 7th is LAST in each list so 8th-12th keep their positions.
-_perc_cols = ['Frequency', '8th (%)', '9th (%)', '10th (%)', '11th (%)', '12th (%)', '7th (%)']
-_perc_names = ['Frequency', 'Perceived 8th', 'Perceived 9th', 'Perceived 10th', 'Perceived 11th', 'Perceived 12th', 'Perceived 7th']
-_actual_names = ['Frequency', 'Actual 8th', 'Actual 9th', 'Actual 10th', 'Actual 11th', 'Actual 12th', 'Actual 7th']
+_perc_cols = ['Frequency', '8th (%)', '9th (%)', '10th (%)', '11th (%)', '12th (%)']
+_perc_names = ['Frequency', 'Perceived 8th', 'Perceived 9th', 'Perceived 10th', 'Perceived 11th', 'Perceived 12th']
+_actual_names = ['Frequency', 'Actual 8th', 'Actual 9th', 'Actual 10th', 'Actual 11th', 'Actual 12th']
 _ordered_cols = ['Frequency',
                  'Perceived 8th','Actual 8th',
                  'Perceived 9th', 'Actual 9th','Perceived 10th', 'Actual 10th',
                  'Perceived 11th', 'Actual 11th',
-                 'Perceived 12th' ,'Actual 12th',
-                 'Perceived 7th', 'Actual 7th']   # row[11], row[12]
+                 'Perceived 12th' ,'Actual 12th']
 
 def _full_width_percs(df, names):
-    """Select the six grade (%) columns, padding a missing/empty 7th or 8th with '-'."""
+    """Select the five grade (%) columns, padding a missing/empty 8th with '-'."""
     out = df.copy()
-    for _c in ('7th (%)', '8th (%)'):
-        if _c not in out.columns:
-            out[_c] = '-'
+    if '8th (%)' not in out.columns:
+        out['8th (%)'] = '-'
     out = out[_perc_cols].copy()
     out.columns = names
     if not _has_8th_data:
         out[names[1]] = '-'
-    if not _has_7th_data:
-        out[names[6]] = '-'
     return out
 
 perceived_only_percsdf = _full_width_percs(freq_answers_grade[0], _perc_names)
@@ -5928,7 +5914,7 @@ _actual_freq_labels = ['Never',
  'Twice a week',
  'Daily']
 howoften_justpercs_df = pd.DataFrame({'Frequency': _actual_freq_labels})
-for _g in ['8th', '9th', '10th', '11th', '12th', '7th']:
+for _g in ['8th', '9th', '10th', '11th', '12th']:
     _ncol = f'{_g} (N)'
     if _ncol not in often_one_grade.columns or _ncol not in age_at_first_grade.columns:
         howoften_justpercs_df[f'{_g} (%)'] = '-'
@@ -5949,10 +5935,6 @@ perceved_actual_table = perceved_actual_table[_ordered_cols]
 
 perceived_only_percsdf_SENIORS = _full_width_percs(freq_answers_grade[1], _perc_names)
 perceived_SENIOR_versus_senioractual = pd.merge(perceived_only_percsdf_SENIORS, howoften_justpercs_df, on='Frequency')
-# Keep the original positions (Perceived 8th-12th = row[1]-[5], Actual 8th-12th =
-# row[6]-[10]) and put Perceived 7th last at row[11].
-perceived_SENIOR_versus_senioractual = perceived_SENIOR_versus_senioractual[
-    ['Frequency'] + _perc_names[1:6] + _actual_names[1:6] + ['Perceived 7th']]
 
 perceived_only_percs_POTdf = _full_width_percs(pot_how_often_your_grade_grade, _perc_names)
 how_often_pot_grade_perc = _full_width_percs(how_often_pot_grade, _actual_names)
