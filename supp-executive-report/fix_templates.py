@@ -278,9 +278,36 @@ def set_style(p_el, sid):
 
 
 # ---------------------------------------------------------------- main fix
-def fix(path_in, path_out, seventh=False):
+def fix(path_in, path_out, seventh=False, protect=()):
     doc = docx.Document(path_in)
     body = doc.element.body
+    # Protected sections (e.g. a school-specific section that must stay exactly
+    # as written): from the paragraph whose text is the title up to the next
+    # top-level heading. They are lifted out, the fixes run, then they go back
+    # unchanged in the same place.
+    _protected = []
+    for _title in protect:
+        _start = next((el for el in body if el.tag == qn('w:p') and ptext(el).strip() == _title), None)
+        if _start is None:
+            LOG.append(f'WARNING: protected section "{_title}" not found')
+            continue
+        _sec = [_start]
+        _n = _start.getnext()
+        while _n is not None and _n.tag in (qn('w:p'), qn('w:tbl')):
+            _sid = style_id(_n) if _n.tag == qn('w:p') else ''
+            if _sid.lower().startswith('heading') and ptext(_n).strip() and _sid == style_id(_start) or \
+                    (_sid.lower() in ('heading', 'heading1') and ptext(_n).strip()):
+                break
+            _sec.append(_n)
+            _n = _n.getnext()
+        _hold = OxmlElement('w:p')
+        _r = OxmlElement('w:r'); _t = OxmlElement('w:t'); _t.text = '@@PROTECTED SECTION@@'
+        _r.append(_t); _hold.append(_r)
+        _start.addprevious(_hold)
+        for _el in _sec:
+            body.remove(_el)
+        _protected.append((_hold, _sec))
+        LOG.append(f'protected (left unchanged): "{_title}" ({len(_sec)} paragraphs/tables)')
     sect = doc.sections[0]
     text_w = int(sect.page_width - sect.left_margin - sect.right_margin)   # EMU
     text_w_tw = int(text_w / 635)                                            # twips
@@ -626,10 +653,13 @@ def fix(path_in, path_out, seventh=False):
         log('C2: exclusion summary added after "We identified..."')
     rp = find_p(body, lambda t: t.strip().startswith('Yes. The survey was administered to all students'))
     if rp is not None and '{{time_rule_text}}' not in ptext(body):
-        q = new_p_after(rp, 'How are past-12-month use and mental health scores counted?',
+        _has_k10 = 'Kessler' in ptext(body)
+        q = new_p_after(rp, 'How are past-12-month use and mental health scores counted?' if _has_k10 else
+                        'How is past-12-month use counted?',
                         like=find_p(body, lambda t: t.strip().startswith('Were survey respondents representative')))
         a1 = new_p_after(q, '{{time_rule_text}}', like=rp)
-        new_p_after(a1, '{{k10_method_text}}', like=rp)
+        if _has_k10:
+            new_p_after(a1, '{{k10_method_text}}', like=rp)
         log('C7/C8: counting rules and K10 scoring added to the methodology')
 
     # ============ C20 / T14: bullets and statistic + "Yet," pairs ============
@@ -852,11 +882,19 @@ def fix(path_in, path_out, seventh=False):
             set_ppr_child(ppr(p), 'w:spacing', remove=True)
     log('T16: TOC styles Calibri 12, regular, 1.15 line spacing (Word refreshes it when the report opens)')
 
+    for _hold, _sec in _protected:
+        for _el in _sec:
+            _hold.addprevious(_el)
+        _hold.getparent().remove(_hold)
     doc.save(path_out)
     return LOG
 
 
 if __name__ == '__main__':
-    src, dst = sys.argv[1], sys.argv[2]
-    for line in fix(src, dst, seventh='7th' in src):
+    # python3 fix_templates.py IN.docx OUT.docx [--protect "Section title" ...]
+    args = sys.argv[1:]
+    prot = [args[i + 1] for i, a in enumerate(args) if a == '--protect']
+    files = [a for i, a in enumerate(args) if a != '--protect' and (i == 0 or args[i - 1] != '--protect')]
+    src, dst = files[0], files[1]
+    for line in fix(src, dst, seventh='7th' in src, protect=prot):
         print(line)
