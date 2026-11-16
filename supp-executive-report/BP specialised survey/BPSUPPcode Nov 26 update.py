@@ -2773,13 +2773,22 @@ def never_by_age(df, gradecol):
 ### on the other scale.
 _number_scale = ["Mostly 1's", "Mostly 2's", "Mostly 3's", "Mostly 4's", "Mostly 5's", "Mostly 6's", "Mostly 7's"]
 _letter_scale = ["Mostly A's", "Mostly B's", "Mostly C's", "Mostly D's", "Mostly F's"]
-if response_grading_scale.startswith('l'):
+# Five-step wording used by some surveys (no letters or numbers), highest first.
+_word_scale = ['Mostly the highest grades', 'Mostly upper-middle grades', 'Mostly middle grades',
+               'Mostly lower-middle grades', 'Mostly the lowest grades']
+_grades_in_data = set(clean['grades_overall'].dropna().astype(str))
+if _grades_in_data & set(_word_scale):
+    listofageoptions = _word_scale          # detected from the answers themselves
+elif response_grading_scale.startswith('l'):
     listofageoptions = _letter_scale
 elif response_grading_scale.startswith('n'):
     listofageoptions = _number_scale
 else:
-    _grades_in_data = set(clean['grades_overall'].dropna().astype(str))
     listofageoptions = _letter_scale if _grades_in_data & set(_letter_scale) else _number_scale
+_unmatched_grades = _grades_in_data - set(listofageoptions)
+if _unmatched_grades:
+    logger.warning(f"Grades overall: answers not on the {listofageoptions[0]}... scale and left out of "
+                   f"the academics tables: {sorted(_unmatched_grades)}")
 print(f"Grading scale for academics tables: {listofageoptions[0]} ... {listofageoptions[-1]}")
 
 
@@ -8118,8 +8127,8 @@ if _GRADE_TO_YEAR:
     for _us, _yr in sorted(_GRADE_TO_YEAR.items(), key=lambda x: -len(x[0])):
         _YEAR_SUBS.extend([
             (f'{_us}-Grade', _yr), (f'{_us}-grade', _yr),
-            (f'{_us} Graders', f'{_yr} students'), (f'{_us} graders', f'{_yr} students'),
-            (f'{_us} Grader', f'{_yr} student'), (f'{_us} grader', f'{_yr} student'),
+            (f'{_us} Graders', f'{_yr} Students'), (f'{_us} graders', f'{_yr} students'),
+            (f'{_us} Grader', f'{_yr} Student'), (f'{_us} grader', f'{_yr} student'),
             (f'{_us} grade', _yr), (f'{_us} Grade', _yr),
             (f'{_us} (', f'{_yr} ('), (f'{_us}:', f'{_yr}:'),
             (f'{_us} ', f'{_yr} '), (f'{_us},', f'{_yr},'), (f'{_us}.', f'{_yr}.'),
